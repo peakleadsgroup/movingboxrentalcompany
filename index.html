@@ -1,1 +1,612 @@
-hello world
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moving Box Rental Company | Check Availability &amp; Pricing</title>
+  <meta name="description" content="Get moving box rental pricing and availability for your move. Fast quotes for apartments, houses, and offices.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy: #002d5b;
+      --navy-dark: #001f3f;
+      --tan: #c49a6c;
+      --tan-light: #e8d4bc;
+      --white: #ffffff;
+      --gray-50: #f7f9fc;
+      --gray-200: #e2e8f0;
+      --gray-500: #64748b;
+      --gray-800: #1e293b;
+      --shadow: 0 12px 40px rgba(0, 45, 91, 0.12);
+      --radius: 12px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Montserrat", system-ui, -apple-system, sans-serif;
+      color: var(--gray-800);
+      background: linear-gradient(180deg, var(--gray-50) 0%, var(--white) 220px);
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
+    }
+
+    .brand {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+
+    .brand img {
+      width: min(100%, 340px);
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .hero-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--gray-200);
+      overflow: hidden;
+    }
+
+    .hero-header {
+      background: var(--navy);
+      color: var(--white);
+      padding: 1.25rem 1.5rem;
+      text-align: center;
+    }
+
+    .hero-header h1 {
+      margin: 0;
+      font-size: clamp(1.15rem, 4vw, 1.35rem);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .hero-header::after {
+      content: "";
+      display: block;
+      width: 48px;
+      height: 3px;
+      background: var(--tan);
+      margin: 0.75rem auto 0;
+      border-radius: 2px;
+    }
+
+    .form-body {
+      padding: 1.5rem 1.5rem 1.75rem;
+    }
+
+    fieldset {
+      border: 0;
+      margin: 0 0 1.5rem;
+      padding: 0;
+    }
+
+    legend {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--navy);
+      margin-bottom: 0.65rem;
+      display: block;
+      width: 100%;
+    }
+
+    .option-grid {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .option-grid.cols-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    @media (max-width: 420px) {
+      .option-grid.cols-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .option {
+      position: relative;
+    }
+
+    .option input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .option label {
+      display: block;
+      padding: 0.7rem 0.85rem;
+      border: 2px solid var(--gray-200);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+      background: var(--white);
+    }
+
+    .option input:focus-visible + label {
+      outline: 2px solid var(--tan);
+      outline-offset: 2px;
+    }
+
+    .option input:checked + label {
+      border-color: var(--navy);
+      background: var(--navy);
+      color: var(--white);
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 0.75rem 0.9rem;
+      border: 2px solid var(--gray-200);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 500;
+      transition: border-color 0.15s;
+    }
+
+    .text-input:focus {
+      outline: none;
+      border-color: var(--tan);
+    }
+
+    .text-input.invalid {
+      border-color: #dc2626;
+    }
+
+    .field-hint {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      margin-top: 0.35rem;
+    }
+
+    .field-error {
+      font-size: 0.75rem;
+      color: #dc2626;
+      margin-top: 0.35rem;
+      display: none;
+    }
+
+    .field-error.visible {
+      display: block;
+    }
+
+    .name-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 420px) {
+      .name-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .submit-btn {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 0.95rem 1.25rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--tan);
+      color: var(--navy-dark);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: #b88958;
+    }
+
+    .submit-btn:active:not(:disabled) {
+      transform: scale(0.99);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .success-panel {
+      display: none;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+    }
+
+    .success-panel.visible {
+      display: block;
+    }
+
+    .success-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 1.25rem;
+      border-radius: 50%;
+      background: var(--tan-light);
+      color: var(--navy);
+      font-size: 2rem;
+      line-height: 64px;
+      font-weight: 800;
+    }
+
+    .success-panel h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1.25rem;
+      color: var(--navy);
+      font-weight: 800;
+    }
+
+    .success-panel p {
+      margin: 0;
+      color: var(--gray-500);
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    .form-error {
+      display: none;
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      color: #b91c1c;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .form-error.visible {
+      display: block;
+    }
+
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="brand">
+      <img src="assets/logo.png" alt="Moving Box Rental Company" width="340" height="auto">
+    </header>
+
+    <main class="hero-card">
+      <div class="hero-header">
+        <h1>Check Availability &amp; Pricing</h1>
+      </div>
+
+      <div id="successPanel" class="success-panel" role="status" aria-live="polite">
+        <div class="success-icon" aria-hidden="true">✓</div>
+        <h2>You're one step closer to an easy move!</h2>
+        <p>We'll reach out with pricing and availability as soon as possible.</p>
+      </div>
+
+      <form id="quoteForm" class="form-body" novalidate>
+        <div id="formError" class="form-error" role="alert"></div>
+
+        <fieldset>
+          <legend>1. When are you moving?</legend>
+          <div class="option-grid">
+            <div class="option">
+              <input type="radio" name="moveTimeline" id="timeline-this-week" value="This week" required>
+              <label for="timeline-this-week">This week</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="moveTimeline" id="timeline-2-weeks" value="Within 2 weeks" required>
+              <label for="timeline-2-weeks">Within 2 weeks</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="moveTimeline" id="timeline-30-days" value="Within 30 days" required>
+              <label for="timeline-30-days">Within 30 days</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="moveTimeline" id="timeline-1-3-months" value="1-3 months" required>
+              <label for="timeline-1-3-months">1-3 months</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="moveTimeline" id="timeline-3-plus" value="3+ months" required>
+              <label for="timeline-3-plus">3+ months</label>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend for="zipFrom">2. What zip code are you moving from?</legend>
+          <input
+            class="text-input"
+            type="text"
+            id="zipFrom"
+            name="zipFrom"
+            inputmode="numeric"
+            pattern="[0-9]{5}"
+            maxlength="5"
+            placeholder="12345"
+            autocomplete="postal-code"
+            required
+            aria-describedby="zipFromHint zipFromError"
+          >
+          <p id="zipFromHint" class="field-hint">5-digit US zip code</p>
+          <p id="zipFromError" class="field-error">Enter a valid 5-digit zip code.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend for="zipTo">3. Where are you moving to?</legend>
+          <input
+            class="text-input"
+            type="text"
+            id="zipTo"
+            name="zipTo"
+            inputmode="numeric"
+            pattern="[0-9]{5}"
+            maxlength="5"
+            placeholder="12345"
+            autocomplete="postal-code"
+            required
+            aria-describedby="zipToHint zipToError"
+          >
+          <p id="zipToHint" class="field-hint">5-digit US zip code</p>
+          <p id="zipToError" class="field-error">Enter a valid 5-digit zip code.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>4. What type of move is this?</legend>
+          <div class="option-grid cols-2">
+            <div class="option">
+              <input type="radio" name="moveType" id="type-apartment" value="Apartment" required>
+              <label for="type-apartment">Apartment</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="moveType" id="type-house" value="House" required>
+              <label for="type-house">House</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="moveType" id="type-office" value="Office" required>
+              <label for="type-office">Office</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="moveType" id="type-other" value="Other" required>
+              <label for="type-other">Other</label>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>5. How many rooms will you be moving?</legend>
+          <div class="option-grid">
+            <div class="option">
+              <input type="radio" name="rooms" id="rooms-studio" value="Studio" required>
+              <label for="rooms-studio">Studio</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="rooms" id="rooms-1" value="1 Bedroom" required>
+              <label for="rooms-1">1 Bedroom</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="rooms" id="rooms-2" value="2 Bedrooms" required>
+              <label for="rooms-2">2 Bedrooms</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="rooms" id="rooms-3" value="3 Bedrooms" required>
+              <label for="rooms-3">3 Bedrooms</label>
+            </div>
+            <div class="option">
+              <input type="radio" name="rooms" id="rooms-4-plus" value="4+ Bedrooms" required>
+              <label for="rooms-4-plus">4+ Bedrooms</label>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>6. Where should we send pricing and availability for your move?</legend>
+          <div class="name-row">
+            <div>
+              <input class="text-input" type="text" id="firstName" name="firstName" placeholder="First Name" autocomplete="given-name" required>
+            </div>
+            <div>
+              <input class="text-input" type="text" id="lastName" name="lastName" placeholder="Last Name" autocomplete="family-name" required>
+            </div>
+          </div>
+          <div style="margin-top: 0.75rem">
+            <input
+              class="text-input"
+              type="tel"
+              id="phone"
+              name="phone"
+              placeholder="Phone"
+              autocomplete="tel"
+              inputmode="tel"
+              required
+              aria-describedby="phoneError"
+            >
+            <p id="phoneError" class="field-error">Enter a valid phone number.</p>
+          </div>
+        </fieldset>
+
+        <button type="submit" class="submit-btn" id="submitBtn">Get Pricing &amp; Availability</button>
+      </form>
+    </main>
+
+    <footer>&copy; <span id="year"></span> Moving Box Rental Company</footer>
+  </div>
+
+  <script>
+    const WEBHOOK_URL = "https://hook.us2.make.com/cxcu3wmnwa5ldn83kbyr7jdepfaq9asn";
+
+    const form = document.getElementById("quoteForm");
+    const successPanel = document.getElementById("successPanel");
+    const formError = document.getElementById("formError");
+    const submitBtn = document.getElementById("submitBtn");
+    const heroHeader = document.querySelector(".hero-header");
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    function digitsOnly(value) {
+      return value.replace(/\D/g, "");
+    }
+
+    function bindZipInput(input, errorEl) {
+      input.addEventListener("input", () => {
+        const cleaned = digitsOnly(input.value).slice(0, 5);
+        if (input.value !== cleaned) {
+          input.value = cleaned;
+        }
+        input.classList.toggle("invalid", cleaned.length > 0 && cleaned.length !== 5);
+        errorEl.classList.remove("visible");
+      });
+
+      input.addEventListener("blur", () => {
+        const valid = /^\d{5}$/.test(input.value);
+        input.classList.toggle("invalid", !valid && input.value.length > 0);
+        errorEl.classList.toggle("visible", !valid && input.value.length > 0);
+      });
+    }
+
+    bindZipInput(document.getElementById("zipFrom"), document.getElementById("zipFromError"));
+    bindZipInput(document.getElementById("zipTo"), document.getElementById("zipToError"));
+
+    function isValidZip(value) {
+      return /^\d{5}$/.test(value);
+    }
+
+    function isValidPhone(value) {
+      const digits = digitsOnly(value);
+      return digits.length >= 10;
+    }
+
+    function getRadioValue(name) {
+      const selected = form.querySelector('input[name="' + name + '"]:checked');
+      return selected ? selected.value : "";
+    }
+
+    function validateForm() {
+      let valid = true;
+      formError.classList.remove("visible");
+      formError.textContent = "";
+
+      const zipFrom = document.getElementById("zipFrom");
+      const zipTo = document.getElementById("zipTo");
+      const phone = document.getElementById("phone");
+      const zipFromErr = document.getElementById("zipFromError");
+      const zipToErr = document.getElementById("zipToError");
+      const phoneErr = document.getElementById("phoneError");
+
+      zipFromErr.classList.remove("visible");
+      zipToErr.classList.remove("visible");
+      phoneErr.classList.remove("visible");
+
+      if (!isValidZip(zipFrom.value)) {
+        zipFrom.classList.add("invalid");
+        zipFromErr.classList.add("visible");
+        valid = false;
+      }
+
+      if (!isValidZip(zipTo.value)) {
+        zipTo.classList.add("invalid");
+        zipToErr.classList.add("visible");
+        valid = false;
+      }
+
+      if (!isValidPhone(phone.value)) {
+        phone.classList.add("invalid");
+        phoneErr.classList.add("visible");
+        valid = false;
+      } else {
+        phone.classList.remove("invalid");
+      }
+
+      if (!form.checkValidity()) {
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    function collectPayload() {
+      return {
+        moveTimeline: getRadioValue("moveTimeline"),
+        zipFrom: document.getElementById("zipFrom").value,
+        zipTo: document.getElementById("zipTo").value,
+        moveType: getRadioValue("moveType"),
+        rooms: getRadioValue("rooms"),
+        firstName: document.getElementById("firstName").value.trim(),
+        lastName: document.getElementById("lastName").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        submittedAt: new Date().toISOString(),
+        source: "landing-page"
+      };
+    }
+
+    function showSuccess() {
+      form.style.display = "none";
+      heroHeader.style.display = "none";
+      successPanel.classList.add("visible");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!validateForm()) {
+        form.reportValidity();
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting…";
+
+      const payload = collectPayload();
+
+      try {
+        const response = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error("Webhook returned " + response.status);
+        }
+
+        showSuccess();
+      } catch (err) {
+        formError.textContent = "Something went wrong submitting your request. Please try again or call us directly.";
+        formError.classList.add("visible");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Get Pricing & Availability";
+      }
+    });
+  </script>
+</body>
+</html>
