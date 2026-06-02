@@ -562,13 +562,15 @@
                 type="tel"
                 id="phone"
                 name="phone"
-                placeholder="Phone"
+                placeholder="5555555555"
                 autocomplete="tel"
-                inputmode="tel"
+                inputmode="numeric"
+                maxlength="10"
                 required
-                aria-describedby="phoneError"
+                aria-describedby="phoneHint phoneError"
               >
-              <p id="phoneError" class="field-error">Enter a valid phone number.</p>
+              <p id="phoneHint" class="field-hint">10-digit US phone number (cannot start with 1)</p>
+              <p id="phoneError" class="field-error">Enter a valid 10-digit phone number. Cannot start with 1.</p>
             </div>
             <div class="step-actions">
               <button type="submit" class="action-btn primary" id="submitBtn">Get Pricing &amp; Availability</button>
@@ -615,8 +617,20 @@
       return /^\d{5}$/.test(value);
     }
 
+    function normalizePhoneDigits(value) {
+      let digits = digitsOnly(value);
+      if (digits.length === 11 && digits.charAt(0) === "1") {
+        digits = digits.slice(1);
+      }
+      return digits;
+    }
+
     function isValidPhone(value) {
-      return digitsOnly(value).length >= 10;
+      const digits = normalizePhoneDigits(value);
+      if (digits.length !== 10) return false;
+      if (digits.charAt(0) === "1" || digits.charAt(0) === "0") return false;
+      if (digits.charAt(3) === "0" || digits.charAt(3) === "1") return false;
+      return true;
     }
 
     function getRadioValue(name) {
@@ -712,8 +726,31 @@
       });
     }
 
+    function bindPhoneInput(input, errorEl) {
+      input.addEventListener("input", () => {
+        let digits = normalizePhoneDigits(input.value).slice(0, 10);
+        if (digits.length > 0 && digits.charAt(0) === "1") {
+          digits = digits.slice(1);
+        }
+        if (input.value !== digits) {
+          input.value = digits;
+        }
+        const partial = digits.length > 0;
+        const valid = isValidPhone(digits);
+        input.classList.toggle("invalid", partial && !valid && digits.length === 10);
+        errorEl.classList.remove("visible");
+      });
+
+      input.addEventListener("blur", () => {
+        const valid = isValidPhone(input.value);
+        input.classList.toggle("invalid", !valid && input.value.length > 0);
+        errorEl.classList.toggle("visible", !valid && input.value.length > 0);
+      });
+    }
+
     bindZipInput(document.getElementById("zipFrom"), document.getElementById("zipFromError"));
     bindZipInput(document.getElementById("zipTo"), document.getElementById("zipToError"));
+    bindPhoneInput(document.getElementById("phone"), document.getElementById("phoneError"));
 
     document.querySelectorAll("[data-auto-advance]").forEach((stepEl) => {
       stepEl.querySelectorAll('input[type="radio"]').forEach((radio) => {
@@ -767,7 +804,7 @@
         rooms: getRadioValue("rooms"),
         firstName: document.getElementById("firstName").value.trim(),
         lastName: document.getElementById("lastName").value.trim(),
-        phone: document.getElementById("phone").value.trim(),
+        phone: normalizePhoneDigits(document.getElementById("phone").value),
         submittedAt: new Date().toISOString(),
         source: "landing-page"
       };
