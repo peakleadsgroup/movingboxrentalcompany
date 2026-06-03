@@ -20,7 +20,9 @@ const state = {
   packId: DEFAULT_PACK_ID,
   stripe: null,
   elements: null,
-  cardElement: null,
+  cardNumberElement: null,
+  cardExpiryElement: null,
+  cardCvcElement: null,
   clientSecret: null,
   paymentIntentId: null,
   stripeCustomerId: null,
@@ -672,8 +674,19 @@ async function ensureStripe() {
   return state.stripe;
 }
 
+function stripeFieldStyle() {
+  return {
+    base: {
+      fontSize: "16px",
+      fontFamily: '"Montserrat", system-ui, sans-serif',
+      color: "#1e293b",
+      "::placeholder": { color: "#64748b" },
+    },
+    invalid: { color: "#dc2626" },
+  };
+}
+
 async function initPaymentStep() {
-  const mountEl = document.getElementById("paymentElement");
   const payBtn = document.getElementById("payBtn");
 
   if (!state.recordId) {
@@ -709,32 +722,18 @@ async function initPaymentStep() {
       state.stripeCustomerId = data.customerId;
     }
 
-    if (!state.cardElement) {
-      state.elements = stripe.elements({
-        clientSecret: state.clientSecret,
-        appearance: {
-          theme: "stripe",
-          variables: {
-            fontFamily: '"Montserrat", system-ui, sans-serif',
-            fontSizeBase: "16px",
-            colorText: "#1e293b",
-            colorBackground: "#ffffff",
-            borderRadius: "6px",
-          },
-        },
+    if (!state.cardNumberElement) {
+      const style = stripeFieldStyle();
+      state.elements = stripe.elements({ clientSecret: state.clientSecret });
+      state.cardNumberElement = state.elements.create("cardNumber", {
+        style,
+        showIcon: true,
       });
-      state.cardElement = state.elements.create("card", {
-        hidePostalCode: true,
-        style: {
-          base: {
-            fontSize: "16px",
-            fontFamily: '"Montserrat", system-ui, sans-serif',
-            color: "#1e293b",
-            "::placeholder": { color: "#64748b" },
-          },
-        },
-      });
-      state.cardElement.mount(mountEl);
+      state.cardExpiryElement = state.elements.create("cardExpiry", { style });
+      state.cardCvcElement = state.elements.create("cardCvc", { style });
+      state.cardNumberElement.mount("#cardNumber");
+      state.cardExpiryElement.mount("#cardExpiry");
+      state.cardCvcElement.mount("#cardCvc");
     }
 
     payBtn.onclick = handlePayment;
@@ -759,7 +758,7 @@ async function handlePayment() {
       state.clientSecret,
       {
         payment_method: {
-          card: state.cardElement,
+          card: state.cardNumberElement,
           billing_details: {
             name: [lead.firstName, lead.lastName].filter(Boolean).join(" ").trim(),
             phone: lead.phone ? `+1${lead.phone}` : undefined,

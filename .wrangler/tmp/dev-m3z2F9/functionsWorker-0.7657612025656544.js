@@ -122,10 +122,16 @@ __name2(airtableFetch, "airtableFetch");
 var NUMERIC_PAYLOAD_KEYS = /* @__PURE__ */ new Set([
   "zipFrom",
   "zipTo",
-  "dropoffZip",
   "weeklyRate",
   "additionalWeekRate"
 ]);
+function coerceZipText(value) {
+  if (value === void 0 || value === null || value === "") return value;
+  const digits = String(value).replace(/\D/g, "");
+  return digits || String(value).trim();
+}
+__name(coerceZipText, "coerceZipText");
+__name2(coerceZipText, "coerceZipText");
 function coerceAirtableValue(key, value) {
   if (!NUMERIC_PAYLOAD_KEYS.has(key)) return value;
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -158,7 +164,7 @@ function leadFieldsFromPayload(payload, fieldMap) {
   set("dropoffStreet", payload.dropoffStreet);
   set("dropoffCity", payload.dropoffCity);
   set("dropoffState", payload.dropoffState);
-  set("dropoffZip", payload.dropoffZip);
+  set("dropoffZip", coerceZipText(payload.dropoffZip));
   set("dropoffDate", payload.dropoffDate);
   set("dropoffTime", payload.dropoffTime);
   set("depositStatus", payload.depositStatus);

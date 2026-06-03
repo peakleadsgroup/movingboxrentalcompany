@@ -133,7 +133,7 @@ Override with `MAKE_BOOKING_WEBHOOK_URL` in Cloudflare.
 | `dropoffStreet` | Single line text | After payment |
 | `dropoffCity` | Single line text | After payment |
 | `dropoffState` | Single line text | After payment |
-| `dropoffZip` | Single line text | After payment |
+| `dropoffZip` | **Single line text** (recommended) | After payment — sent as a 5-digit string |
 | `dropoffDate` | Date | After payment |
 | `dropoffTime` | Single line text | After payment |
 | `depositStatus` | Single select (`Pending`, `Paid`) | `Pending` on create, `Paid` after Stripe |
@@ -143,7 +143,7 @@ Override with `MAKE_BOOKING_WEBHOOK_URL` in Cloudflare.
 
 Override names with `AIRTABLE_FIELD_MAP` if your Airtable field names differ.
 
-**Number fields:** `zipFrom`, `zipTo`, `dropoffZip`, `weeklyRate`, and `additionalWeekRate` are sent as numbers. Zips that start with `0` (e.g. `02108`) lose the leading zero in a Number column — use Single line text for those if you need the full code.
+**Number fields:** `zipFrom`, `zipTo`, `weeklyRate`, and `additionalWeekRate` are sent as numbers if your Airtable columns are Number. **`dropoffZip` is always sent as text** (e.g. `"78701"`). Use Single line text for `dropoffZip`; do not use a Number column unless you change the server mapping.
 
 ## API routes (Pages Functions)
 

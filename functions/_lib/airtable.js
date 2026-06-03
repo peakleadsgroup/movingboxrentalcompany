@@ -63,14 +63,19 @@ async function airtableFetch(env, method, body, recordId) {
   return data;
 }
 
-/** Payload keys that map to Airtable Number columns. */
+/** Payload keys that map to Airtable Number columns (not dropoffZip — use Single line text). */
 const NUMERIC_PAYLOAD_KEYS = new Set([
   "zipFrom",
   "zipTo",
-  "dropoffZip",
   "weeklyRate",
   "additionalWeekRate",
 ]);
+
+function coerceZipText(value) {
+  if (value === undefined || value === null || value === "") return value;
+  const digits = String(value).replace(/\D/g, "");
+  return digits || String(value).trim();
+}
 
 function coerceAirtableValue(key, value) {
   if (!NUMERIC_PAYLOAD_KEYS.has(key)) return value;
@@ -104,7 +109,7 @@ export function leadFieldsFromPayload(payload, fieldMap) {
   set("dropoffStreet", payload.dropoffStreet);
   set("dropoffCity", payload.dropoffCity);
   set("dropoffState", payload.dropoffState);
-  set("dropoffZip", payload.dropoffZip);
+  set("dropoffZip", coerceZipText(payload.dropoffZip));
   set("dropoffDate", payload.dropoffDate);
   set("dropoffTime", payload.dropoffTime);
   set("depositStatus", payload.depositStatus);
