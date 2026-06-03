@@ -647,12 +647,18 @@ function formatRemainingBalance() {
   return `$${remaining}`;
 }
 
-function updatePayButtonLabel() {
+function updatePaymentStepCopy() {
   const payBtn = document.getElementById("payBtn");
-  if (!payBtn) return;
+  const summary = document.getElementById("paymentSummary");
   const remaining = formatRemainingBalance();
   const depositDisplay = state.config?.depositAmountDisplay || "$100";
-  payBtn.textContent = `Reserve your boxes with a ${depositDisplay} deposit. The remaining balance of ${remaining} will be charged upon delivery`;
+
+  if (summary) {
+    summary.textContent = `A ${depositDisplay} deposit is due today to reserve your boxes. The remaining balance of ${remaining} will be charged at delivery.`;
+  }
+  if (payBtn && payBtn.dataset.processing !== "1") {
+    payBtn.textContent = `Pay ${depositDisplay} deposit`;
+  }
 }
 
 async function ensureStripe() {
@@ -677,7 +683,7 @@ async function initPaymentStep() {
 
   try {
     await ensureConfig();
-    updatePayButtonLabel();
+    updatePaymentStepCopy();
 
     const stripe = await ensureStripe();
 
@@ -704,8 +710,30 @@ async function initPaymentStep() {
     }
 
     if (!state.cardElement) {
-      state.elements = stripe.elements({ clientSecret: state.clientSecret });
-      state.cardElement = state.elements.create("card");
+      state.elements = stripe.elements({
+        clientSecret: state.clientSecret,
+        appearance: {
+          theme: "stripe",
+          variables: {
+            fontFamily: '"Montserrat", system-ui, sans-serif',
+            fontSizeBase: "16px",
+            colorText: "#1e293b",
+            colorBackground: "#ffffff",
+            borderRadius: "6px",
+          },
+        },
+      });
+      state.cardElement = state.elements.create("card", {
+        hidePostalCode: true,
+        style: {
+          base: {
+            fontSize: "16px",
+            fontFamily: '"Montserrat", system-ui, sans-serif',
+            color: "#1e293b",
+            "::placeholder": { color: "#64748b" },
+          },
+        },
+      });
       state.cardElement.mount(mountEl);
     }
 
@@ -718,6 +746,7 @@ async function initPaymentStep() {
 async function handlePayment() {
   const payBtn = document.getElementById("payBtn");
   payBtn.disabled = true;
+  payBtn.dataset.processing = "1";
   payBtn.textContent = "Processing…";
   hideFormError();
 
@@ -773,7 +802,8 @@ async function handlePayment() {
   } catch (err) {
     showFormError(err.message || "Payment failed. Please try again.");
     payBtn.disabled = false;
-    updatePayButtonLabel();
+    delete payBtn.dataset.processing;
+    updatePaymentStepCopy();
   }
 }
 
