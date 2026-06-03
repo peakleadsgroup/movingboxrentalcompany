@@ -21,6 +21,7 @@ export function buildLeadWebhookPayload(body, recordId) {
     submittedAt: body.submittedAt ?? new Date().toISOString(),
     source: body.source || "landing-page",
     depositStatus: body.depositStatus || "Pending",
+    submissionId: body.submissionId ?? null,
   };
 }
 

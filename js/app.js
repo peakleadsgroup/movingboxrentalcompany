@@ -28,6 +28,8 @@ const state = {
   mapsReady: false,
   autocomplete: null,
   addressConfirmed: false,
+  savingLead: false,
+  submissionId: null,
 };
 
 const form = document.getElementById("quoteForm");
@@ -236,11 +238,19 @@ function packDetailsLine(pack) {
   return `${pack.boxes} boxes, ${pack.dollies} dolly, ${pack.packingPaperLbs} lbs paper, dry erase markers`;
 }
 
+function ensureSubmissionId() {
+  if (!state.submissionId) {
+    state.submissionId = crypto.randomUUID();
+  }
+  return state.submissionId;
+}
+
 function collectLeadPayload(partial = {}) {
   const selection = getSelectedPack();
   const pack = selection?.pack;
 
   return {
+    submissionId: ensureSubmissionId(),
     zipFrom: document.getElementById("zipFrom").value,
     zipTo: document.getElementById("zipTo").value,
     rooms: selection?.tier?.label || "",
@@ -447,14 +457,17 @@ document.querySelectorAll("[data-continue]").forEach((btn) => {
   });
 });
 
-document.querySelector('[data-submit-contact]')?.addEventListener("click", async (e) => {
-  const btn = e.currentTarget;
+async function submitContactLead(btn) {
   if (currentStep !== 4) return;
-  if (!validateContactStep()) {
+  if (state.recordId) {
+    goNext();
     return;
   }
+  if (state.savingLead) return;
+  if (!validateContactStep()) return;
 
   hideFormError();
+  state.savingLead = true;
   btn.disabled = true;
   btn.textContent = "Saving…";
 
@@ -472,9 +485,22 @@ document.querySelector('[data-submit-contact]')?.addEventListener("click", async
     goNext();
   } catch (err) {
     showFormError(err.message || "Something went wrong. Please try again.");
-  } finally {
     btn.disabled = false;
     btn.textContent = "Next";
+    state.savingLead = false;
+  }
+}
+
+const contactSubmitBtn = document.querySelector("[data-submit-contact]");
+contactSubmitBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  submitContactLead(e.currentTarget);
+});
+
+document.getElementById("phone")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && currentStep === 4 && contactSubmitBtn) {
+    e.preventDefault();
+    submitContactLead(contactSubmitBtn);
   }
 });
 

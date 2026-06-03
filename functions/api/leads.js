@@ -1,5 +1,6 @@
 import { createLead } from "../_lib/airtable.js";
 import { errorResponse, jsonResponse, withCors } from "../_lib/env.js";
+import { leadCreateKey, runOnce } from "../_lib/idempotency.js";
 import { sendLeadWebhook } from "../_lib/webhook.js";
 
 export async function onRequestOptions(context) {
@@ -34,15 +35,25 @@ export async function onRequestPost(context) {
   }
 
   try {
-    const record = await createLead(env, body);
+    const record = await runOnce(leadCreateKey(body), () => createLead(env, body));
 
-    try {
-      await sendLeadWebhook(env, body, record.id);
-    } catch (webhookErr) {
-      console.error("Make webhook error:", webhookErr);
+    if (!record.existing) {
+      try {
+        await sendLeadWebhook(env, body, record.id);
+      } catch (webhookErr) {
+        console.error("Make webhook error:", webhookErr);
+      }
     }
 
-    return withCors(jsonResponse({ ok: true, recordId: record.id }), request, env);
+    return withCors(
+      jsonResponse({
+        ok: true,
+        recordId: record.id,
+        duplicate: Boolean(record.existing),
+      }),
+      request,
+      env
+    );
   } catch (err) {
     console.error(err);
     return withCors(errorResponse(err.message || "Failed to save lead", 500), request, env);

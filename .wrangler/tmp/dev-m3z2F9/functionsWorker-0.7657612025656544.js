@@ -169,11 +169,43 @@ function leadFieldsFromPayload(payload, fieldMap) {
 }
 __name(leadFieldsFromPayload, "leadFieldsFromPayload");
 __name2(leadFieldsFromPayload, "leadFieldsFromPayload");
+function escapeFormulaValue(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+__name(escapeFormulaValue, "escapeFormulaValue");
+__name2(escapeFormulaValue, "escapeFormulaValue");
+async function findRecentLeadByPhone(env, phone, withinMinutes = 5) {
+  if (!phone || !env.AIRTABLE_API_KEY || !env.AIRTABLE_BASE_ID) {
+    return null;
+  }
+  const fieldMap = getFieldMap(env);
+  const phoneField = fieldMap.phone || "phone";
+  const table = encodeURIComponent(env.AIRTABLE_TABLE_NAME || "Leads");
+  const safePhone = escapeFormulaValue(phone);
+  const formula = `AND({${phoneField}}="${safePhone}", IS_AFTER(CREATED_TIME(), DATEADD(NOW(), -${withinMinutes}, 'minutes')))`;
+  const url = `https://api.airtable.com/v0/${env.AIRTABLE_BASE_ID}/${table}?filterByFormula=${encodeURIComponent(formula)}&maxRecords=1`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${env.AIRTABLE_API_KEY}` }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.error("Airtable duplicate check failed:", data);
+    return null;
+  }
+  const record = data.records?.[0];
+  return record ? { id: record.id, fields: record.fields } : null;
+}
+__name(findRecentLeadByPhone, "findRecentLeadByPhone");
+__name2(findRecentLeadByPhone, "findRecentLeadByPhone");
 async function createLead(env, payload) {
+  const existing = await findRecentLeadByPhone(env, payload.phone);
+  if (existing) {
+    return { id: existing.id, fields: existing.fields, existing: true };
+  }
   const fieldMap = getFieldMap(env);
   const fields = leadFieldsFromPayload(payload, fieldMap);
   const data = await airtableFetch(env, "POST", { fields });
-  return { id: data.id, fields: data.fields };
+  return { id: data.id, fields: data.fields, existing: false };
 }
 __name(createLead, "createLead");
 __name2(createLead, "createLead");
@@ -264,7 +296,8 @@ function buildLeadWebhookPayload(body, recordId) {
     phone: body.phone,
     submittedAt: body.submittedAt ?? (/* @__PURE__ */ new Date()).toISOString(),
     source: body.source || "landing-page",
-    depositStatus: body.depositStatus || "Pending"
+    depositStatus: body.depositStatus || "Pending",
+    submissionId: body.submissionId ?? null
   };
 }
 __name(buildLeadWebhookPayload, "buildLeadWebhookPayload");
@@ -579,6 +612,27 @@ async function onRequestPost2(context) {
 }
 __name(onRequestPost2, "onRequestPost2");
 __name2(onRequestPost2, "onRequestPost");
+var inflight = /* @__PURE__ */ new Map();
+function runOnce(key, fn) {
+  if (!key) return fn();
+  let pending = inflight.get(key);
+  if (!pending) {
+    pending = Promise.resolve().then(fn).finally(() => {
+      inflight.delete(key);
+    });
+    inflight.set(key, pending);
+  }
+  return pending;
+}
+__name(runOnce, "runOnce");
+__name2(runOnce, "runOnce");
+function leadCreateKey(body) {
+  if (body.submissionId) return `lead:${body.submissionId}`;
+  if (body.phone) return `lead:phone:${body.phone}`;
+  return null;
+}
+__name(leadCreateKey, "leadCreateKey");
+__name2(leadCreateKey, "leadCreateKey");
 async function onRequestOptions4(context) {
   const { request, env } = context;
   const origin = request.headers.get("Origin") || "";
@@ -609,13 +663,23 @@ async function onRequestPost3(context) {
     return withCors(errorResponse("Contact information is required"), request, env);
   }
   try {
-    const record = await createLead(env, body);
-    try {
-      await sendLeadWebhook(env, body, record.id);
-    } catch (webhookErr) {
-      console.error("Make webhook error:", webhookErr);
+    const record = await runOnce(leadCreateKey(body), () => createLead(env, body));
+    if (!record.existing) {
+      try {
+        await sendLeadWebhook(env, body, record.id);
+      } catch (webhookErr) {
+        console.error("Make webhook error:", webhookErr);
+      }
     }
-    return withCors(jsonResponse({ ok: true, recordId: record.id }), request, env);
+    return withCors(
+      jsonResponse({
+        ok: true,
+        recordId: record.id,
+        duplicate: Boolean(record.existing)
+      }),
+      request,
+      env
+    );
   } catch (err) {
     console.error(err);
     return withCors(errorResponse(err.message || "Failed to save lead", 500), request, env);

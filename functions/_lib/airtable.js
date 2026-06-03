@@ -115,11 +115,46 @@ export function leadFieldsFromPayload(payload, fieldMap) {
   return fields;
 }
 
+function escapeFormulaValue(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+/** Prevent duplicate rows from double-submit or parallel requests. */
+export async function findRecentLeadByPhone(env, phone, withinMinutes = 5) {
+  if (!phone || !env.AIRTABLE_API_KEY || !env.AIRTABLE_BASE_ID) {
+    return null;
+  }
+
+  const fieldMap = getFieldMap(env);
+  const phoneField = fieldMap.phone || "phone";
+  const table = encodeURIComponent(env.AIRTABLE_TABLE_NAME || "Leads");
+  const safePhone = escapeFormulaValue(phone);
+  const formula = `AND({${phoneField}}="${safePhone}", IS_AFTER(CREATED_TIME(), DATEADD(NOW(), -${withinMinutes}, 'minutes')))`;
+  const url = `https://api.airtable.com/v0/${env.AIRTABLE_BASE_ID}/${table}?filterByFormula=${encodeURIComponent(formula)}&maxRecords=1`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${env.AIRTABLE_API_KEY}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.error("Airtable duplicate check failed:", data);
+    return null;
+  }
+
+  const record = data.records?.[0];
+  return record ? { id: record.id, fields: record.fields } : null;
+}
+
 export async function createLead(env, payload) {
+  const existing = await findRecentLeadByPhone(env, payload.phone);
+  if (existing) {
+    return { id: existing.id, fields: existing.fields, existing: true };
+  }
+
   const fieldMap = getFieldMap(env);
   const fields = leadFieldsFromPayload(payload, fieldMap);
   const data = await airtableFetch(env, "POST", { fields });
-  return { id: data.id, fields: data.fields };
+  return { id: data.id, fields: data.fields, existing: false };
 }
 
 export async function updateLead(env, recordId, payload) {

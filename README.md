@@ -44,6 +44,8 @@ Default lead webhook: `https://hook.us2.make.com/pqvr2gify32nr99cybhb84feeofq4nw
 
 Default booking webhook: `https://hook.us2.make.com/t2aufkom38h8ik31i09ct6ey3jwit21u`
 
+**Duplicate Airtable rows:** Usually caused by two `POST /api/leads` requests at once (double-click or race). The API dedupes by `submissionId` (sent from the browser) and by matching `phone` within 5 minutes.
+
 ### Make webhook payload (`lead_created`)
 
 ```json
