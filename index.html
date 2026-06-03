@@ -301,34 +301,25 @@
       .name-row { grid-template-columns: 1fr; }
     }
 
-    #addressLookup[hidden],
-    #addressStreetBlock[hidden] {
+    .hidden-initially {
       display: none !important;
     }
 
-    #addressStreetBlock:not([hidden]) {
-      animation: stepIn 0.3s ease;
+    .address-grid {
+      display: grid;
+      gap: 0.75rem;
     }
 
-    #addressStreetBlock .text-input[readonly] {
-      background: var(--gray-50);
-      cursor: default;
+    .address-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
     }
 
-    .place-autocomplete-host {
-      width: 100%;
-      display: block;
-    }
-
-    .place-autocomplete-host gmp-place-autocomplete {
-      width: 100%;
-      display: block;
-    }
-
-    .change-address-btn {
-      margin-top: 0.5rem;
-      padding: 0.35rem 0;
-      font-size: 0.8rem;
+    @media (max-width: 420px) {
+      .address-row {
+        grid-template-columns: 1fr;
+      }
     }
 
     .tcpa {
@@ -577,20 +568,28 @@
 
           <fieldset class="form-step" data-step="5" data-manual-advance>
             <legend>Drop-off location</legend>
-            <div id="addressLookup">
-              <div id="placeAutocompleteHost" class="place-autocomplete-host" aria-describedby="addressHint addressError"></div>
-              <p id="addressHint" class="field-hint text-left">Start typing, then choose an address from the list.</p>
+            <p id="addressHint" class="field-hint text-left">Start typing your street address, then choose from the list.</p>
+            <div class="address-grid">
+              <div>
+                <label class="field-hint text-left" for="street">Street address</label>
+                <input class="text-input text-left" type="text" id="street" placeholder="Street address" autocomplete="off" aria-describedby="addressError">
+              </div>
+              <div id="cityField" class="hidden-initially">
+                <label class="field-hint text-left" for="city">City</label>
+                <input class="text-input text-left" type="text" id="city" placeholder="City">
+              </div>
+              <div class="address-row hidden-initially" id="stateZipRow">
+                <div>
+                  <label class="field-hint text-left" for="state">State</label>
+                  <input class="text-input text-left" type="text" id="state" placeholder="State" maxlength="2">
+                </div>
+                <div>
+                  <label class="field-hint text-left" for="zip">Zip code</label>
+                  <input class="text-input text-left" type="text" id="zip" placeholder="Zip" inputmode="numeric" maxlength="5">
+                </div>
+              </div>
             </div>
-            <div id="addressStreetBlock" hidden>
-              <label class="field-hint text-left" for="dropoffStreetVisible">Street address</label>
-              <input class="text-input text-left" type="text" id="dropoffStreetVisible" readonly tabindex="-1" aria-readonly="true">
-              <button type="button" class="action-btn secondary change-address-btn" id="changeAddressBtn">Change address</button>
-            </div>
-            <input type="hidden" id="dropoffStreet" name="dropoffStreet">
-            <input type="hidden" id="dropoffCity" name="dropoffCity">
-            <input type="hidden" id="dropoffState" name="dropoffState">
-            <input type="hidden" id="dropoffZip" name="dropoffZip">
-            <p id="addressError" class="field-error text-left">Please select an address from the suggestions.</p>
+            <p id="addressError" class="field-error text-left">Please select a complete address from the suggestions.</p>
             <div class="step-actions">
               <button type="button" class="action-btn primary" data-continue>Next</button>
             </div>
@@ -634,6 +633,6 @@
     <footer>&copy; <span id="year"></span> Moving Box Rental Company</footer>
   </div>
 
-  <script type="module" src="/js/app.js?v=3"></script>
+  <script type="module" src="/js/app.js?v=6"></script>
 </body>
 </html>

@@ -25,9 +25,6 @@ const state = {
   paymentIntentId: null,
   stripeCustomerId: null,
   config: null,
-  mapsReady: false,
-  placeAutocomplete: null,
-  addressConfirmed: false,
   savingLead: false,
   submissionId: null,
 };
@@ -128,9 +125,6 @@ function showStep(index) {
 
   if (index === 3) {
     renderPackOptions();
-  }
-  if (index === 5) {
-    initAddressAutocomplete();
   }
   if (index === 7) {
     initPaymentStep();
@@ -268,90 +262,61 @@ function collectLeadPayload(partial = {}) {
   };
 }
 
-function addressEl(id) {
-  return document.getElementById(id);
-}
-
-function setAddressHidden(id, hidden) {
-  const el = addressEl(id);
-  if (el) el.hidden = hidden;
-}
-
-function getDropoffStreetValue() {
-  return addressEl("dropoffStreet")?.value.trim() || "";
-}
-
-function showAddressLookup() {
-  state.addressConfirmed = false;
-  setAddressHidden("addressLookup", false);
-  setAddressHidden("addressStreetBlock", true);
-
-  const streetVisible = addressEl("dropoffStreetVisible");
-  if (streetVisible) streetVisible.value = "";
-
-  const hint = addressEl("addressHint");
-  if (hint) hint.hidden = false;
-
-  if (state.placeAutocomplete?.value !== undefined) {
-    state.placeAutocomplete.value = "";
-  }
-}
-
-function showAddressConfirmed(street, city, stateCode, zip) {
-  state.addressConfirmed = true;
-
-  const streetField = addressEl("dropoffStreet");
-  const cityField = addressEl("dropoffCity");
-  const stateField = addressEl("dropoffState");
-  const zipField = addressEl("dropoffZip");
-  if (streetField) streetField.value = street;
-  if (cityField) cityField.value = city;
-  if (stateField) stateField.value = stateCode;
-  if (zipField) zipField.value = zip;
-
-  const streetVisible = addressEl("dropoffStreetVisible");
-  const streetBlock = addressEl("addressStreetBlock");
-
-  if (streetBlock && streetVisible) {
-    streetVisible.value = street;
-    setAddressHidden("addressLookup", true);
-    setAddressHidden("addressStreetBlock", false);
-  }
-
-  addressEl("addressError")?.classList.remove("visible");
-}
-
-function resetAddressDetails() {
-  ["dropoffStreet", "dropoffCity", "dropoffState", "dropoffZip"].forEach((id) => {
-    const el = addressEl(id);
-    if (el) el.value = "";
-  });
-  const streetVisible = addressEl("dropoffStreetVisible");
-  if (streetVisible) streetVisible.value = "";
-  showAddressLookup();
-}
-
 function collectDropoffPayload() {
   return {
-    dropoffStreet: getDropoffStreetValue(),
-    dropoffCity: document.getElementById("dropoffCity").value.trim(),
-    dropoffState: document.getElementById("dropoffState").value.trim(),
-    dropoffZip: document.getElementById("dropoffZip").value.trim(),
+    dropoffStreet: document.getElementById("street")?.value.trim() || "",
+    dropoffCity: document.getElementById("city")?.value.trim() || "",
+    dropoffState: document.getElementById("state")?.value.trim() || "",
+    dropoffZip: document.getElementById("zip")?.value.trim() || "",
     dropoffDate: document.getElementById("dropoffDate").value,
     dropoffTime: document.getElementById("dropoffTime").value,
   };
 }
 
-function validateDropoffAddress() {
-  const street = getDropoffStreetValue();
-  const city = addressEl("dropoffCity")?.value.trim() || "";
-  const stateCode = addressEl("dropoffState")?.value.trim() || "";
-  const zip = addressEl("dropoffZip")?.value.trim() || "";
-  const valid =
-    state.addressConfirmed && street && city && stateCode && zip;
+function revealAddressDetailFields() {
+  document.getElementById("cityField")?.classList.remove("hidden-initially");
+  document.getElementById("stateZipRow")?.classList.remove("hidden-initially");
+}
 
-  addressEl("addressError")?.classList.toggle("visible", !valid);
+function hideAddressDetailFields() {
+  document.getElementById("cityField")?.classList.add("hidden-initially");
+  document.getElementById("stateZipRow")?.classList.add("hidden-initially");
+  const city = document.getElementById("city");
+  const stateEl = document.getElementById("state");
+  const zip = document.getElementById("zip");
+  if (city) city.value = "";
+  if (stateEl) stateEl.value = "";
+  if (zip) zip.value = "";
+}
+
+function validateDropoffAddress() {
+  const street = document.getElementById("street")?.value.trim() || "";
+  const city = document.getElementById("city")?.value.trim() || "";
+  const stateCode = document.getElementById("state")?.value.trim() || "";
+  const zip = document.getElementById("zip")?.value.trim() || "";
+  const detailsVisible = !document
+    .getElementById("cityField")
+    ?.classList.contains("hidden-initially");
+
+  const valid = Boolean(street && city && stateCode && zip && detailsVisible);
+
+  const streetInput = document.getElementById("street");
+  if (streetInput) {
+    streetInput.classList.toggle("invalid", !valid && !street);
+  }
+  document.getElementById("addressError")?.classList.toggle("visible", !valid);
   return valid;
+}
+
+function onStreetInput() {
+  const street = document.getElementById("street")?.value.trim() || "";
+  if (street) {
+    revealAddressDetailFields();
+  } else {
+    hideAddressDetailFields();
+  }
+  document.getElementById("addressError")?.classList.remove("visible");
+  document.getElementById("street")?.classList.remove("invalid");
 }
 
 function validateDropoffSchedule() {
@@ -563,125 +528,83 @@ async function ensureConfig() {
   return data;
 }
 
-async function ensureGoogleMaps() {
-  if (state.mapsReady) return;
-  const config = await ensureConfig();
-  if (!config.googleMapsApiKey) {
-    throw new Error("Google Maps API key is not configured");
-  }
+let placesAutocompleteAttached = false;
 
-  const key = encodeURIComponent(config.googleMapsApiKey);
+/** Same pattern as thelocalpick bathrooms.html __attachPlaces */
+window.__attachPlaces = function () {
+  if (placesAutocompleteAttached) return;
+  if (!window.google?.maps?.places) return;
 
-  if (!window.google?.maps?.importLibrary) {
-    await new Promise((resolve, reject) => {
-      const existing = document.querySelector("script[data-maps-loader]");
-      if (existing) {
-        existing.addEventListener("load", () => resolve(), { once: true });
-        if (window.google?.maps) resolve();
-        return;
-      }
-      const s = document.createElement("script");
-      s.dataset.mapsLoader = "1";
-      s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async`;
-      s.async = true;
-      s.onload = () => resolve();
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
+  const addressInput = document.getElementById("street");
+  if (!addressInput) return;
 
-  await google.maps.importLibrary("places");
-  state.mapsReady = true;
-}
+  placesAutocompleteAttached = true;
 
-function placeToLegacyFormat(place) {
-  const components = place.addressComponents || [];
-  return {
-    address_components: components.map((c) => ({
-      long_name: c.longText || "",
-      short_name: c.shortText || "",
-      types: c.types || [],
-    })),
-    formatted_address: place.formattedAddress || "",
-    name: place.displayName || "",
-  };
-}
+  const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+    types: ["address"],
+    componentRestrictions: { country: ["us"] },
+    fields: ["address_components", "formatted_address"],
+  });
 
-function parsePlaceAddress(place) {
-  const components = {};
-  for (const c of place.address_components || []) {
-    for (const type of c.types) {
-      if (!components[type]) components[type] = c.long_name;
+  addressInput.addEventListener("input", onStreetInput);
+
+  autocomplete.addListener("place_changed", () => {
+    const place = autocomplete.getPlace();
+    if (!place?.address_components) return;
+
+    const comps = Object.fromEntries(
+      place.address_components.flatMap((c) => c.types.map((t) => [t, c]))
+    );
+
+    let streetAddress = "";
+    if (comps.street_number) streetAddress += `${comps.street_number.long_name} `;
+    if (comps.route) streetAddress += comps.route.long_name;
+    if (streetAddress.trim()) {
+      addressInput.value = streetAddress.trim();
     }
-    if (c.types.includes("administrative_area_level_1")) {
-      components.state = c.short_name;
+
+    revealAddressDetailFields();
+
+    const cityInput = document.getElementById("city");
+    const stateInput = document.getElementById("state");
+    const zipInput = document.getElementById("zip");
+
+    if (comps.locality && cityInput) {
+      cityInput.value = comps.locality.long_name;
+    } else if (comps.postal_town && cityInput) {
+      cityInput.value = comps.postal_town.long_name;
+    } else if (comps.sublocality && cityInput) {
+      cityInput.value = comps.sublocality.long_name;
     }
-  }
 
-  const streetNumber = components.street_number || "";
-  const route = components.route || "";
-  const street = [streetNumber, route].filter(Boolean).join(" ");
-  const streetLine =
-    street || place.name || place.formatted_address?.split(",")[0]?.trim() || "";
-  const city =
-    components.locality ||
-    components.postal_town ||
-    components.sublocality_level_1 ||
-    components.sublocality ||
-    "";
-  const stateCode = components.state || "";
-  const zip = components.postal_code || "";
+    if (comps.administrative_area_level_1 && stateInput) {
+      stateInput.value = comps.administrative_area_level_1.short_name;
+    }
 
-  return { streetLine, city, stateCode, zip };
-}
+    if (comps.postal_code && zipInput) {
+      zipInput.value = comps.postal_code.long_name;
+    }
 
-function fillAddressFromPlace(place) {
-  if (!place) return;
+    validateDropoffAddress();
+  });
+};
 
-  const { streetLine, city, stateCode, zip } = parsePlaceAddress(place);
-  if (!streetLine || !city || !stateCode || !zip) {
-    addressEl("addressError")?.classList.add("visible");
-    return;
-  }
+async function bootPlacesAutocomplete() {
+  if (document.querySelector("script[data-mbr-places]")) return;
 
-  showAddressConfirmed(streetLine, city, stateCode, zip);
-}
-
-async function initAddressAutocomplete() {
   try {
-    await ensureGoogleMaps();
-    if (state.placeAutocomplete) return;
+    const config = await ensureConfig();
+    if (!config.googleMapsApiKey) return;
 
-    const host = addressEl("placeAutocompleteHost");
-    if (!host) {
-      throw new Error("Address search is not available on this page.");
-    }
-
-    const { PlaceAutocompleteElement } = google.maps.places;
-    const widget = new PlaceAutocompleteElement({
-      includedRegionCodes: ["us"],
-    });
-
-    host.replaceChildren(widget);
-    state.placeAutocomplete = widget;
-
-    widget.addEventListener("gmp-placeselect", async (event) => {
-      const place = event.place;
-      if (!place) return;
-
-      try {
-        await place.fetchFields({
-          fields: ["addressComponents", "formattedAddress", "displayName"],
-        });
-        fillAddressFromPlace(placeToLegacyFormat(place));
-      } catch (err) {
-        console.error(err);
-        addressEl("addressError")?.classList.add("visible");
-      }
-    });
+    const script = document.createElement("script");
+    script.dataset.mbrPlaces = "1";
+    script.async = true;
+    script.defer = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(config.googleMapsApiKey)}&libraries=places&loading=async&callback=__attachPlaces`;
+    script.onerror = () => console.error("Google Maps script failed to load");
+    document.body.appendChild(script);
   } catch (err) {
-    console.error(err);
-    showFormError(err.message || "Address lookup is unavailable.");
+    console.warn("Places autocomplete unavailable:", err);
   }
 }
 
@@ -886,12 +809,8 @@ function showSuccess() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-document.getElementById("changeAddressBtn")?.addEventListener("click", () => {
-  resetAddressDetails();
-  setTimeout(() => state.placeAutocomplete?.focus?.(), 50);
-});
-
 buildTimeOptions();
 setMinDropoffDate();
 syncStepFieldState(0);
 updateProgress();
+bootPlacesAutocomplete();
