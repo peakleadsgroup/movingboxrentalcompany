@@ -1,4 +1,8 @@
 import { depositAmountCents, errorResponse, jsonResponse, withCors } from "../_lib/env.js";
+import {
+  createDepositPaymentIntent,
+  ensureStripeCustomer,
+} from "../_lib/stripe.js";
 
 export async function onRequestOptions(context) {
   const { request, env } = context;
@@ -37,46 +41,40 @@ export async function onRequestPost(context) {
     return withCors(errorResponse("recordId is required"), request, env);
   }
 
-  const amount = depositAmountCents(env);
-  const params = new URLSearchParams({
-    amount: String(amount),
-    currency: "usd",
-    "automatic_payment_methods[enabled]": "true",
-    "metadata[airtable_record_id]": recordId,
-    description: "Moving box rental deposit",
-  });
+  try {
+    const customerId = await ensureStripeCustomer(secret, {
+      recordId,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      phone: body.phone,
+      email: body.email,
+      existingCustomerId: body.stripeCustomerId,
+    });
 
-  if (body.email) {
-    params.set("receipt_email", body.email);
-  }
+    const amount = depositAmountCents(env);
+    const paymentIntent = await createDepositPaymentIntent(secret, {
+      amount,
+      recordId,
+      customerId,
+    });
 
-  const stripeRes = await fetch("https://api.stripe.com/v1/payment_intents", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: params.toString(),
-  });
-
-  const data = await stripeRes.json();
-  if (!stripeRes.ok) {
-    console.error(data);
     return withCors(
-      errorResponse(data.error?.message || "Stripe payment intent failed", 500),
+      jsonResponse({
+        ok: true,
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        customerId,
+        amount,
+      }),
+      request,
+      env
+    );
+  } catch (err) {
+    console.error(err);
+    return withCors(
+      errorResponse(err.message || "Stripe payment intent failed", 500),
       request,
       env
     );
   }
-
-  return withCors(
-    jsonResponse({
-      ok: true,
-      clientSecret: data.client_secret,
-      paymentIntentId: data.id,
-      amount,
-    }),
-    request,
-    env
-  );
 }

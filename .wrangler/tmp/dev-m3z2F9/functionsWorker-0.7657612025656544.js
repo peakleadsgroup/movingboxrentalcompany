@@ -75,7 +75,9 @@ var DEFAULT_FIELDS = {
   dropoffDate: "dropoffDate",
   dropoffTime: "dropoffTime",
   depositStatus: "depositStatus",
-  paymentIntentId: "paymentIntentId"
+  paymentIntentId: "paymentIntentId",
+  stripeCustomerId: "stripeCustomerId",
+  stripePaymentMethodId: "stripePaymentMethodId"
 };
 function getFieldMap(env) {
   if (!env.AIRTABLE_FIELD_MAP) return { ...DEFAULT_FIELDS };
@@ -161,6 +163,8 @@ function leadFieldsFromPayload(payload, fieldMap) {
   set("dropoffTime", payload.dropoffTime);
   set("depositStatus", payload.depositStatus);
   set("paymentIntentId", payload.paymentIntentId);
+  set("stripeCustomerId", payload.stripeCustomerId);
+  set("stripePaymentMethodId", payload.stripePaymentMethodId);
   return fields;
 }
 __name(leadFieldsFromPayload, "leadFieldsFromPayload");
@@ -356,6 +360,61 @@ async function onRequestGet(context) {
 }
 __name(onRequestGet, "onRequestGet");
 __name2(onRequestGet, "onRequestGet");
+async function stripeRequest(secret, method, path, params) {
+  const res = await fetch(`https://api.stripe.com/v1${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${secret}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: params?.toString()
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error?.message || data.error || "Stripe request failed");
+  }
+  return data;
+}
+__name(stripeRequest, "stripeRequest");
+__name2(stripeRequest, "stripeRequest");
+function formatPhoneForStripe(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return digits ? `+${digits}` : "";
+}
+__name(formatPhoneForStripe, "formatPhoneForStripe");
+__name2(formatPhoneForStripe, "formatPhoneForStripe");
+async function ensureStripeCustomer(secret, { recordId, firstName, lastName, phone, email, existingCustomerId }) {
+  if (existingCustomerId) {
+    return existingCustomerId;
+  }
+  const params = new URLSearchParams();
+  const name = [firstName, lastName].filter(Boolean).join(" ").trim();
+  if (name) params.set("name", name);
+  const stripePhone = formatPhoneForStripe(phone);
+  if (stripePhone) params.set("phone", stripePhone);
+  if (email) params.set("email", email);
+  params.set("metadata[airtable_record_id]", recordId);
+  const customer = await stripeRequest(secret, "POST", "/customers", params);
+  return customer.id;
+}
+__name(ensureStripeCustomer, "ensureStripeCustomer");
+__name2(ensureStripeCustomer, "ensureStripeCustomer");
+async function createDepositPaymentIntent(secret, { amount, recordId, customerId }) {
+  const params = new URLSearchParams({
+    amount: String(amount),
+    currency: "usd",
+    customer: customerId,
+    setup_future_usage: "off_session",
+    description: "Moving box rental deposit"
+  });
+  params.append("payment_method_types[]", "card");
+  params.set("metadata[airtable_record_id]", recordId);
+  return stripeRequest(secret, "POST", "/payment_intents", params);
+}
+__name(createDepositPaymentIntent, "createDepositPaymentIntent");
+__name2(createDepositPaymentIntent, "createDepositPaymentIntent");
 async function onRequestOptions3(context) {
   const { request, env } = context;
   const origin = request.headers.get("Origin") || "";
@@ -390,47 +449,82 @@ async function onRequestPost2(context) {
   if (!recordId) {
     return withCors(errorResponse("recordId is required"), request, env);
   }
-  const amount = depositAmountCents(env);
-  const params = new URLSearchParams({
-    amount: String(amount),
-    currency: "usd",
-    "automatic_payment_methods[enabled]": "true",
-    "metadata[airtable_record_id]": recordId,
-    description: "Moving box rental deposit"
-  });
-  if (body.email) {
-    params.set("receipt_email", body.email);
-  }
-  const stripeRes = await fetch("https://api.stripe.com/v1/payment_intents", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: params.toString()
-  });
-  const data = await stripeRes.json();
-  if (!stripeRes.ok) {
-    console.error(data);
+  try {
+    const customerId = await ensureStripeCustomer(secret, {
+      recordId,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      phone: body.phone,
+      email: body.email,
+      existingCustomerId: body.stripeCustomerId
+    });
+    const amount = depositAmountCents(env);
+    const paymentIntent = await createDepositPaymentIntent(secret, {
+      amount,
+      recordId,
+      customerId
+    });
     return withCors(
-      errorResponse(data.error?.message || "Stripe payment intent failed", 500),
+      jsonResponse({
+        ok: true,
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        customerId,
+        amount
+      }),
+      request,
+      env
+    );
+  } catch (err) {
+    console.error(err);
+    return withCors(
+      errorResponse(err.message || "Stripe payment intent failed", 500),
       request,
       env
     );
   }
-  return withCors(
-    jsonResponse({
-      ok: true,
-      clientSecret: data.client_secret,
-      paymentIntentId: data.id,
-      amount
-    }),
-    request,
-    env
-  );
 }
 __name(onRequestPost2, "onRequestPost2");
 __name2(onRequestPost2, "onRequestPost");
+var DEFAULT_MAKE_LEAD_WEBHOOK = "https://hook.us2.make.com/pqvr2gify32nr99cybhb84feeofq4nww";
+function buildLeadWebhookPayload(body, recordId) {
+  return {
+    event: "lead_created",
+    airtableRecordId: recordId,
+    zipFrom: body.zipFrom ?? null,
+    zipTo: body.zipTo ?? null,
+    rooms: body.rooms ?? null,
+    packName: body.packName ?? null,
+    weeklyRate: body.weeklyRate ?? null,
+    additionalWeekRate: body.additionalWeekRate ?? null,
+    packDetails: body.packDetails ?? null,
+    firstName: body.firstName,
+    lastName: body.lastName,
+    phone: body.phone,
+    submittedAt: body.submittedAt ?? (/* @__PURE__ */ new Date()).toISOString(),
+    source: body.source || "landing-page",
+    depositStatus: body.depositStatus || "Pending"
+  };
+}
+__name(buildLeadWebhookPayload, "buildLeadWebhookPayload");
+__name2(buildLeadWebhookPayload, "buildLeadWebhookPayload");
+async function sendLeadWebhook(env, body, recordId) {
+  const url = env.MAKE_LEAD_WEBHOOK_URL || DEFAULT_MAKE_LEAD_WEBHOOK;
+  if (!url) return { ok: false, skipped: true };
+  const payload = buildLeadWebhookPayload(body, recordId);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Make webhook failed (${res.status}): ${text || res.statusText}`);
+  }
+  return { ok: true, payload };
+}
+__name(sendLeadWebhook, "sendLeadWebhook");
+__name2(sendLeadWebhook, "sendLeadWebhook");
 async function onRequestOptions4(context) {
   const { request, env } = context;
   const origin = request.headers.get("Origin") || "";
@@ -462,6 +556,11 @@ async function onRequestPost3(context) {
   }
   try {
     const record = await createLead(env, body);
+    try {
+      await sendLeadWebhook(env, body, record.id);
+    } catch (webhookErr) {
+      console.error("Make webhook error:", webhookErr);
+    }
     return withCors(jsonResponse({ ok: true, recordId: record.id }), request, env);
   } catch (err) {
     console.error(err);

@@ -313,6 +313,20 @@
       gap: 0.65rem;
     }
 
+    #addressFields[hidden] {
+      display: none !important;
+    }
+
+    #addressFields:not([hidden]) {
+      display: grid;
+      animation: stepIn 0.3s ease;
+    }
+
+    #addressFields .text-input[readonly] {
+      background: var(--gray-50);
+      cursor: default;
+    }
+
     .tcpa {
       font-size: 0.7rem;
       color: var(--gray-500);
@@ -557,16 +571,17 @@
 
           <fieldset class="form-step" data-step="5" data-manual-advance>
             <legend>Drop-off location</legend>
-            <input class="text-input text-left" type="text" id="addressSearch" placeholder="Street address" autocomplete="off" aria-label="Search street address">
+            <input class="text-input text-left" type="text" id="addressSearch" placeholder="Street address" autocomplete="off" aria-label="Street address" aria-describedby="addressHint addressError">
+            <input type="hidden" id="dropoffStreet" name="dropoffStreet">
+            <p id="addressHint" class="field-hint text-left">Start typing, then choose an address from the list.</p>
             <div id="addressFields" class="address-grid" hidden>
-              <input class="text-input text-left" type="text" id="dropoffStreet" name="dropoffStreet" placeholder="Street address">
-              <input class="text-input text-left" type="text" id="dropoffCity" name="dropoffCity" placeholder="City">
+              <input class="text-input text-left" type="text" id="dropoffCity" name="dropoffCity" placeholder="City" readonly tabindex="-1">
               <div class="row-2">
-                <input class="text-input text-left" type="text" id="dropoffState" name="dropoffState" placeholder="State" maxlength="2">
-                <input class="text-input text-left" type="text" id="dropoffZip" name="dropoffZip" placeholder="Zip" inputmode="numeric" maxlength="5">
+                <input class="text-input text-left" type="text" id="dropoffState" name="dropoffState" placeholder="State" maxlength="2" readonly tabindex="-1">
+                <input class="text-input text-left" type="text" id="dropoffZip" name="dropoffZip" placeholder="Zip" inputmode="numeric" maxlength="5" readonly tabindex="-1">
               </div>
             </div>
-            <p id="addressError" class="field-error text-left">Please select a complete address.</p>
+            <p id="addressError" class="field-error text-left">Please select an address from the suggestions.</p>
             <div class="step-actions">
               <button type="button" class="action-btn primary" data-continue>Next</button>
             </div>
@@ -595,6 +610,7 @@
           <fieldset class="form-step" data-step="7" data-manual-advance>
             <legend>Reserve your boxes</legend>
             <p class="deposit-copy" id="depositLabel">$100 deposit to reserve boxes</p>
+            <p class="field-hint text-left" style="margin-bottom: 0.75rem">Credit card only. Your card will be saved on file for future rental charges.</p>
             <div id="paymentElement"></div>
             <div class="step-actions">
               <button type="button" class="action-btn primary" id="payBtn" data-pay>Pay deposit &amp; reserve</button>

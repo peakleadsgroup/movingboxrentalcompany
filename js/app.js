@@ -23,6 +23,7 @@ const state = {
   paymentElement: null,
   clientSecret: null,
   paymentIntentId: null,
+  stripeCustomerId: null,
   config: null,
   mapsReady: false,
   autocomplete: null,
@@ -256,9 +257,27 @@ function collectLeadPayload(partial = {}) {
   };
 }
 
+function syncDropoffStreetFromSearch() {
+  const street = document.getElementById("addressSearch").value.trim();
+  document.getElementById("dropoffStreet").value = street;
+  return street;
+}
+
+function resetAddressDetails() {
+  document.getElementById("dropoffStreet").value = "";
+  document.getElementById("dropoffCity").value = "";
+  document.getElementById("dropoffState").value = "";
+  document.getElementById("dropoffZip").value = "";
+  document.getElementById("addressFields").hidden = true;
+  document.getElementById("addressSearch").classList.remove("invalid");
+  ["dropoffCity", "dropoffState", "dropoffZip"].forEach((id) => {
+    document.getElementById(id).classList.remove("invalid");
+  });
+}
+
 function collectDropoffPayload() {
   return {
-    dropoffStreet: document.getElementById("dropoffStreet").value.trim(),
+    dropoffStreet: syncDropoffStreetFromSearch(),
     dropoffCity: document.getElementById("dropoffCity").value.trim(),
     dropoffState: document.getElementById("dropoffState").value.trim(),
     dropoffZip: document.getElementById("dropoffZip").value.trim(),
@@ -268,14 +287,29 @@ function collectDropoffPayload() {
 }
 
 function validateDropoffAddress() {
-  const ids = ["dropoffStreet", "dropoffCity", "dropoffState", "dropoffZip"];
+  const searchEl = document.getElementById("addressSearch");
+  const detailsEl = document.getElementById("addressFields");
+  const street = syncDropoffStreetFromSearch();
   let valid = true;
-  ids.forEach((id) => {
+
+  if (!street) {
+    searchEl.classList.add("invalid");
+    valid = false;
+  } else {
+    searchEl.classList.remove("invalid");
+  }
+
+  if (detailsEl.hidden) {
+    valid = false;
+  }
+
+  ["dropoffCity", "dropoffState", "dropoffZip"].forEach((id) => {
     const el = document.getElementById(id);
     const empty = !el.value.trim();
     el.classList.toggle("invalid", empty);
     if (empty) valid = false;
   });
+
   document.getElementById("addressError").classList.toggle("visible", !valid);
   return valid;
 }
@@ -498,14 +532,19 @@ function fillAddressFromPlace(place) {
   const streetNumber = components.street_number || "";
   const route = components.route || "";
   const street = [streetNumber, route].filter(Boolean).join(" ");
+  const streetLine =
+    street || place.name || place.formatted_address?.split(",")[0]?.trim() || "";
 
-  document.getElementById("dropoffStreet").value =
-    street || place.name || place.formatted_address?.split(",")[0] || "";
+  const searchEl = document.getElementById("addressSearch");
+  searchEl.value = streetLine;
+  document.getElementById("dropoffStreet").value = streetLine;
   document.getElementById("dropoffCity").value =
     components.locality || components.postal_town || components.sublocality || "";
   document.getElementById("dropoffState").value = components.state || "";
   document.getElementById("dropoffZip").value = components.postal_code || "";
 
+  searchEl.classList.remove("invalid");
+  document.getElementById("addressError").classList.remove("visible");
   document.getElementById("addressFields").hidden = false;
 }
 
@@ -525,6 +564,12 @@ async function initAddressAutocomplete() {
       const place = state.autocomplete.getPlace();
       if (!place || !place.address_components) return;
       fillAddressFromPlace(place);
+    });
+
+    input.addEventListener("input", () => {
+      if (!input.value.trim()) {
+        resetAddressDetails();
+      }
     });
   } catch (err) {
     showFormError(err.message || "Address lookup is unavailable.");
@@ -586,10 +631,17 @@ async function initPaymentStep() {
     const stripe = await ensureStripe();
 
     if (!state.clientSecret) {
+      const lead = collectLeadPayload();
       const res = await fetch(API.paymentIntent, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recordId: state.recordId }),
+        body: JSON.stringify({
+          recordId: state.recordId,
+          firstName: lead.firstName,
+          lastName: lead.lastName,
+          phone: lead.phone,
+          stripeCustomerId: state.stripeCustomerId,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -597,11 +649,19 @@ async function initPaymentStep() {
       }
       state.clientSecret = data.clientSecret;
       state.paymentIntentId = data.paymentIntentId;
+      state.stripeCustomerId = data.customerId;
     }
 
     if (!state.paymentElement) {
       state.elements = stripe.elements({ clientSecret: state.clientSecret });
-      state.paymentElement = state.elements.create("payment");
+      state.paymentElement = state.elements.create("payment", {
+        paymentMethodOrder: ["card"],
+        wallets: {
+          applePay: "never",
+          googlePay: "never",
+          link: "never",
+        },
+      });
       state.paymentElement.mount(mountEl);
     }
 
@@ -637,6 +697,11 @@ async function handlePayment() {
       throw new Error("Payment was not completed. Please try again.");
     }
 
+    const paymentMethodId =
+      typeof paymentIntent?.payment_method === "string"
+        ? paymentIntent.payment_method
+        : paymentIntent?.payment_method?.id || null;
+
     const res = await fetch(API.lead(state.recordId), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -644,6 +709,8 @@ async function handlePayment() {
         ...dropoff,
         depositStatus: "Paid",
         paymentIntentId: state.paymentIntentId || paymentIntent?.id,
+        stripeCustomerId: state.stripeCustomerId || paymentIntent?.customer || null,
+        stripePaymentMethodId: paymentMethodId,
       }),
     });
     const data = await res.json();

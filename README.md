@@ -37,6 +37,33 @@ npx wrangler pages dev .
 |----------|---------|-------------|
 | `DEPOSIT_AMOUNT_CENTS` | `10000` | Deposit amount in cents ($100) |
 | `ALLOWED_ORIGIN` | — | If set, enables CORS for that origin only (usually unnecessary on same domain) |
+| `MAKE_LEAD_WEBHOOK_URL` | Make hook below | Fired on first Airtable create (contact step) |
+
+Default Make webhook: `https://hook.us2.make.com/pqvr2gify32nr99cybhb84feeofq4nww`
+
+### Make webhook payload (`lead_created`)
+
+```json
+{
+  "event": "lead_created",
+  "airtableRecordId": "recXXXXXXXX",
+  "zipFrom": 78701,
+  "zipTo": 78704,
+  "rooms": "2 Bedrooms",
+  "packName": "📦📦 Standard Pack",
+  "weeklyRate": 162,
+  "additionalWeekRate": 81,
+  "packDetails": "40 boxes, 1 dolly, 4 lbs paper, dry erase markers",
+  "firstName": "Drew",
+  "lastName": "Williams",
+  "phone": "9193634740",
+  "submittedAt": "2026-06-03T18:30:00.000Z",
+  "source": "landing-page",
+  "depositStatus": "Pending"
+}
+```
+
+Zips and rates are numbers (matching your Airtable Number fields). A test payload with this shape was sent to your Make hook.
 | `AIRTABLE_FIELD_MAP` | — | JSON object mapping our payload keys to your Airtable column names (see below) |
 
 ### Airtable columns
@@ -70,6 +97,8 @@ npx wrangler pages dev .
 | `dropoffTime` | Single line text | After payment |
 | `depositStatus` | Single select (`Pending`, `Paid`) | `Pending` on create, `Paid` after Stripe |
 | `paymentIntentId` | Single line text | After payment |
+| `stripeCustomerId` | Single line text | After payment (`cus_…`) |
+| `stripePaymentMethodId` | Single line text | After payment (`pm_…`) |
 
 Override names with `AIRTABLE_FIELD_MAP` if your Airtable field names differ.
 
@@ -81,7 +110,7 @@ Override names with `AIRTABLE_FIELD_MAP` if your Airtable field names differ.
 |-------|--------|---------|
 | `/api/check-zip` | POST | `{ "zip": "78701" }` → `{ serviced: true/false }` |
 | `/api/config` | GET | Public Stripe publishable key, Google Maps key, deposit amount |
-| `/api/leads` | POST | Create lead after contact step |
+| `/api/leads` | POST | Create lead after contact step; also POSTs to Make webhook |
 | `/api/leads/:id` | PATCH | Update drop-off + payment after deposit |
 | `/api/create-payment-intent` | POST | `{ "recordId": "rec..." }` → Stripe PaymentIntent |
 
@@ -91,7 +120,21 @@ Override names with `AIRTABLE_FIELD_MAP` if your Airtable field names differ.
 
 1. Create account / use test mode.
 2. Add `STRIPE_SECRET_KEY` and `STRIPE_PUBLISHABLE_KEY` to Cloudflare.
-3. Enable **Payment methods** you want (card is default via Payment Element).
+3. Payments are **card-only** (no Apple Pay, Google Pay, or Link in the Payment Element).
+4. Each booking creates a **Stripe Customer** and saves the card with `setup_future_usage: off_session` so you can charge the same card later from the Stripe Dashboard or API using `stripeCustomerId` / `stripePaymentMethodId` stored in Airtable.
+
+**Charge saved cards later (example):**
+
+```bash
+curl https://api.stripe.com/v1/payment_intents \
+  -u sk_live_xxx: \
+  -d amount=16200 \
+  -d currency=usd \
+  -d customer=cus_XXX \
+  -d payment_method=pm_XXX \
+  -d off_session=true \
+  -d confirm=true
+```
 
 ### Airtable
 

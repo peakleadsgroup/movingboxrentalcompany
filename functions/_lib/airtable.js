@@ -20,6 +20,8 @@ const DEFAULT_FIELDS = {
   dropoffTime: "dropoffTime",
   depositStatus: "depositStatus",
   paymentIntentId: "paymentIntentId",
+  stripeCustomerId: "stripeCustomerId",
+  stripePaymentMethodId: "stripePaymentMethodId",
 };
 
 export function getFieldMap(env) {
@@ -107,6 +109,8 @@ export function leadFieldsFromPayload(payload, fieldMap) {
   set("dropoffTime", payload.dropoffTime);
   set("depositStatus", payload.depositStatus);
   set("paymentIntentId", payload.paymentIntentId);
+  set("stripeCustomerId", payload.stripeCustomerId);
+  set("stripePaymentMethodId", payload.stripePaymentMethodId);
 
   return fields;
 }
