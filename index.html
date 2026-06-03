@@ -559,11 +559,11 @@
             <legend>Drop-off location</legend>
             <input class="text-input text-left" type="text" id="addressSearch" placeholder="Street address" autocomplete="off" aria-label="Search street address">
             <div id="addressFields" class="address-grid" hidden>
-              <input class="text-input text-left" type="text" id="dropoffStreet" name="dropoffStreet" placeholder="Street address" required>
-              <input class="text-input text-left" type="text" id="dropoffCity" name="dropoffCity" placeholder="City" required>
+              <input class="text-input text-left" type="text" id="dropoffStreet" name="dropoffStreet" placeholder="Street address">
+              <input class="text-input text-left" type="text" id="dropoffCity" name="dropoffCity" placeholder="City">
               <div class="row-2">
-                <input class="text-input text-left" type="text" id="dropoffState" name="dropoffState" placeholder="State" maxlength="2" required>
-                <input class="text-input text-left" type="text" id="dropoffZip" name="dropoffZip" placeholder="Zip" inputmode="numeric" maxlength="5" required>
+                <input class="text-input text-left" type="text" id="dropoffState" name="dropoffState" placeholder="State" maxlength="2">
+                <input class="text-input text-left" type="text" id="dropoffZip" name="dropoffZip" placeholder="Zip" inputmode="numeric" maxlength="5">
               </div>
             </div>
             <p id="addressError" class="field-error text-left">Please select a complete address.</p>
@@ -577,11 +577,11 @@
             <div class="schedule-row">
               <div>
                 <label class="field-hint text-left" for="dropoffDate">Date</label>
-                <input class="text-input text-left" type="date" id="dropoffDate" name="dropoffDate" required>
+                <input class="text-input text-left" type="date" id="dropoffDate" name="dropoffDate">
               </div>
               <div>
                 <label class="field-hint text-left" for="dropoffTime">Time (9 AM – 8 PM)</label>
-                <select class="select-input" id="dropoffTime" name="dropoffTime" required>
+                <select class="select-input" id="dropoffTime" name="dropoffTime">
                   <option value="">Select a time</option>
                 </select>
               </div>

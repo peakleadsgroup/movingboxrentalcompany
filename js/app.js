@@ -100,6 +100,15 @@ function focusStepInput(stepEl) {
   }
 }
 
+function syncStepFieldState(activeIndex) {
+  steps.forEach((step, i) => {
+    const inactive = i !== activeIndex;
+    step.querySelectorAll("input, select, textarea").forEach((el) => {
+      el.disabled = inactive;
+    });
+  });
+}
+
 function showStep(index) {
   if (index < 0 || index >= steps.length) return;
 
@@ -108,6 +117,7 @@ function showStep(index) {
   });
 
   currentStep = index;
+  syncStepFieldState(index);
   updateProgress();
   focusStepInput(steps[index]);
   hideFormError();
@@ -291,9 +301,17 @@ function validateDropoffSchedule() {
 }
 
 function validateContactStep() {
+  const firstName = document.getElementById("firstName");
+  const lastName = document.getElementById("lastName");
   const phone = document.getElementById("phone");
   const phoneErr = document.getElementById("phoneError");
-  let valid = form.checkValidity();
+  let valid = true;
+
+  [firstName, lastName].forEach((el) => {
+    const empty = !el.value.trim();
+    el.classList.toggle("invalid", empty);
+    if (empty) valid = false;
+  });
 
   phoneErr.classList.remove("visible");
   phone.classList.remove("invalid");
@@ -391,7 +409,6 @@ document.querySelector('[data-submit-contact]')?.addEventListener("click", async
   const btn = e.currentTarget;
   if (currentStep !== 4) return;
   if (!validateContactStep()) {
-    form.reportValidity();
     return;
   }
 
@@ -676,4 +693,5 @@ function showSuccess() {
 
 buildTimeOptions();
 setMinDropoffDate();
+syncStepFieldState(0);
 updateProgress();
