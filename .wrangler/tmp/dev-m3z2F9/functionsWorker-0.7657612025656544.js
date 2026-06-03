@@ -117,11 +117,28 @@ async function airtableFetch(env, method, body, recordId) {
 }
 __name(airtableFetch, "airtableFetch");
 __name2(airtableFetch, "airtableFetch");
+var NUMERIC_PAYLOAD_KEYS = /* @__PURE__ */ new Set([
+  "zipFrom",
+  "zipTo",
+  "dropoffZip",
+  "weeklyRate",
+  "additionalWeekRate"
+]);
+function coerceAirtableValue(key, value) {
+  if (!NUMERIC_PAYLOAD_KEYS.has(key)) return value;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const digits = String(value).replace(/\D/g, "");
+  if (!digits) return value;
+  const n = Number(digits);
+  return Number.isFinite(n) ? n : value;
+}
+__name(coerceAirtableValue, "coerceAirtableValue");
+__name2(coerceAirtableValue, "coerceAirtableValue");
 function leadFieldsFromPayload(payload, fieldMap) {
   const fields = {};
   const set = /* @__PURE__ */ __name2((key, value) => {
     if (value !== void 0 && value !== null && value !== "") {
-      fields[fieldMap[key]] = value;
+      fields[fieldMap[key]] = coerceAirtableValue(key, value);
     }
   }, "set");
   set("firstName", payload.firstName);

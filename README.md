@@ -45,8 +45,8 @@ npx wrangler pages dev .
 
 | Column | Filled when | Example |
 |--------|-------------|---------|
-| `zipFrom` | Contact step | `78701` |
-| `zipTo` | Contact step | `78704` |
+| `zipFrom` | Contact step | `78701` (sent as **Number** if your Airtable columns are Number) |
+| `zipTo` | Contact step | `78704` (same) |
 | `rooms` | Contact step | `2 Bedrooms` (bedroom count label) |
 | `firstName`, `lastName`, `phone` | Contact step | |
 | `submittedAt` | Contact step | ISO timestamp |
@@ -72,6 +72,8 @@ npx wrangler pages dev .
 | `paymentIntentId` | Single line text | After payment |
 
 Override names with `AIRTABLE_FIELD_MAP` if your Airtable field names differ.
+
+**Number fields:** `zipFrom`, `zipTo`, `dropoffZip`, `weeklyRate`, and `additionalWeekRate` are sent as numbers. Zips that start with `0` (e.g. `02108`) lose the leading zero in a Number column — use Single line text for those if you need the full code.
 
 ## API routes (Pages Functions)
 

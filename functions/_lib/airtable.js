@@ -61,11 +61,29 @@ async function airtableFetch(env, method, body, recordId) {
   return data;
 }
 
+/** Payload keys that map to Airtable Number columns. */
+const NUMERIC_PAYLOAD_KEYS = new Set([
+  "zipFrom",
+  "zipTo",
+  "dropoffZip",
+  "weeklyRate",
+  "additionalWeekRate",
+]);
+
+function coerceAirtableValue(key, value) {
+  if (!NUMERIC_PAYLOAD_KEYS.has(key)) return value;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const digits = String(value).replace(/\D/g, "");
+  if (!digits) return value;
+  const n = Number(digits);
+  return Number.isFinite(n) ? n : value;
+}
+
 export function leadFieldsFromPayload(payload, fieldMap) {
   const fields = {};
   const set = (key, value) => {
     if (value !== undefined && value !== null && value !== "") {
-      fields[fieldMap[key]] = value;
+      fields[fieldMap[key]] = coerceAirtableValue(key, value);
     }
   };
 
