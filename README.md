@@ -140,8 +140,11 @@ Override with `MAKE_BOOKING_WEBHOOK_URL` in Cloudflare.
 | `paymentIntentId` | Single line text | After payment |
 | `stripeCustomerId` | Single line text | After payment (`cus_…`) |
 | `stripePaymentMethodId` | Single line text | After payment (`pm_…`) |
+| `error` | **Long text** | Backend failures after a successful Stripe charge (detailed log; user still sees success) |
 
 Override names with `AIRTABLE_FIELD_MAP` if your Airtable field names differ.
+
+**After payment:** If Airtable or Make fails, the API still returns success to the visitor (payment already captured in Stripe). A detailed entry is appended to `error` so your team can fix the record manually.
 
 **Number fields:** `zipFrom`, `zipTo`, `weeklyRate`, and `additionalWeekRate` are sent as numbers if your Airtable columns are Number. **`dropoffZip` is always sent as text** (e.g. `"78701"`). Use Single line text for `dropoffZip`; do not use a Number column unless you change the server mapping.
 

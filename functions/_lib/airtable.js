@@ -22,6 +22,7 @@ const DEFAULT_FIELDS = {
   paymentIntentId: "paymentIntentId",
   stripeCustomerId: "stripeCustomerId",
   stripePaymentMethodId: "stripePaymentMethodId",
+  error: "error",
 };
 
 export function getFieldMap(env) {
@@ -116,8 +117,35 @@ export function leadFieldsFromPayload(payload, fieldMap) {
   set("paymentIntentId", payload.paymentIntentId);
   set("stripeCustomerId", payload.stripeCustomerId);
   set("stripePaymentMethodId", payload.stripePaymentMethodId);
+  set("error", payload.error);
 
   return fields;
+}
+
+export async function getLeadRecord(env, recordId) {
+  return airtableFetch(env, "GET", undefined, recordId);
+}
+
+/** Append a detailed error entry to the Long text `error` column (newest first). */
+export async function appendLeadError(env, recordId, message) {
+  const fieldMap = getFieldMap(env);
+  const errorField = fieldMap.error;
+  if (!errorField) {
+    throw new Error("Airtable error field is not configured");
+  }
+
+  let existing = "";
+  try {
+    const record = await getLeadRecord(env, recordId);
+    if (record?.fields?.[errorField]) {
+      existing = `\n\n---\n\n${String(record.fields[errorField])}`;
+    }
+  } catch {
+    existing = "";
+  }
+
+  const fields = { [errorField]: `${message}${existing}` };
+  return airtableFetch(env, "PATCH", { fields }, recordId);
 }
 
 function escapeFormulaValue(value) {

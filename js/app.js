@@ -742,6 +742,44 @@ async function initPaymentStep() {
   }
 }
 
+function isStripeCardDecline(stripeError) {
+  if (!stripeError) return false;
+  return stripeError.type === "card_error";
+}
+
+function cardDeclineUserMessage(stripeError) {
+  if (stripeError?.code === "authentication_required") {
+    return "Your bank needs you to verify this charge. Check for a prompt from your bank, approve the payment in your banking app, then try again.";
+  }
+  return "Your card was declined. Try a different card or contact your bank—you may need to approve the charge in your bank's mobile app.";
+}
+
+async function finalizeBookingAfterPayment(paymentIntent, paymentMethodId) {
+  const dropoff = collectDropoffPayload();
+  const payload = {
+    ...collectLeadPayload({ depositStatus: "Paid" }),
+    ...dropoff,
+    paymentIntentId: state.paymentIntentId || paymentIntent?.id,
+    stripeCustomerId: state.stripeCustomerId || paymentIntent?.customer || null,
+    stripePaymentMethodId: paymentMethodId,
+    completedAt: new Date().toISOString(),
+  };
+
+  try {
+    const res = await fetch(API.lead(state.recordId), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      console.error("Booking finalize returned non-ok:", data);
+    }
+  } catch (err) {
+    console.error("Booking finalize request failed:", err);
+  }
+}
+
 async function handlePayment() {
   const payBtn = document.getElementById("payBtn");
   payBtn.disabled = true;
@@ -751,8 +789,6 @@ async function handlePayment() {
 
   try {
     const stripe = await ensureStripe();
-    const dropoff = collectDropoffPayload();
-
     const lead = collectLeadPayload();
     const { error, paymentIntent } = await stripe.confirmCardPayment(
       state.clientSecret,
@@ -768,38 +804,32 @@ async function handlePayment() {
     );
 
     if (error) {
-      throw new Error(error.message);
+      if (isStripeCardDecline(error)) {
+        showFormError(cardDeclineUserMessage(error));
+      }
+      payBtn.disabled = false;
+      delete payBtn.dataset.processing;
+      updatePaymentStepCopy();
+      return;
     }
 
-    if (paymentIntent && paymentIntent.status !== "succeeded") {
-      throw new Error("Payment was not completed. Please try again.");
+    if (!paymentIntent || paymentIntent.status !== "succeeded") {
+      console.error("Payment did not succeed:", paymentIntent?.status);
+      payBtn.disabled = false;
+      delete payBtn.dataset.processing;
+      updatePaymentStepCopy();
+      return;
     }
 
     const paymentMethodId =
-      typeof paymentIntent?.payment_method === "string"
+      typeof paymentIntent.payment_method === "string"
         ? paymentIntent.payment_method
-        : paymentIntent?.payment_method?.id || null;
+        : paymentIntent.payment_method?.id || null;
 
-    const res = await fetch(API.lead(state.recordId), {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...collectLeadPayload({ depositStatus: "Paid" }),
-        ...dropoff,
-        paymentIntentId: state.paymentIntentId || paymentIntent?.id,
-        stripeCustomerId: state.stripeCustomerId || paymentIntent?.customer || null,
-        stripePaymentMethodId: paymentMethodId,
-        completedAt: new Date().toISOString(),
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.ok) {
-      throw new Error(data.error || "Failed to finalize booking");
-    }
-
+    await finalizeBookingAfterPayment(paymentIntent, paymentMethodId);
     showSuccess();
   } catch (err) {
-    showFormError(err.message || "Payment failed. Please try again.");
+    console.error("Unexpected payment error:", err);
     payBtn.disabled = false;
     delete payBtn.dataset.processing;
     updatePaymentStepCopy();

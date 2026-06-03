@@ -1,4 +1,5 @@
 import { updateLead } from "../../_lib/airtable.js";
+import { logBookingError } from "../../_lib/booking-errors.js";
 import { errorResponse, jsonResponse, withCors } from "../../_lib/env.js";
 import { sendBookingWebhook } from "../../_lib/webhook.js";
 
@@ -34,18 +35,36 @@ export async function onRequestPatch(context) {
     return withCors(errorResponse("Invalid JSON body"), request, env);
   }
 
+  const errorContext = {
+    recordId,
+    paymentIntentId: body.paymentIntentId ?? null,
+    payload: body,
+  };
+
+  let airtableOk = false;
+
   try {
     await updateLead(env, recordId, body);
-
-    try {
-      await sendBookingWebhook(env, body, recordId);
-    } catch (webhookErr) {
-      console.error("Make booking webhook error:", webhookErr);
-    }
-
-    return withCors(jsonResponse({ ok: true, recordId }), request, env);
+    airtableOk = true;
   } catch (err) {
-    console.error(err);
-    return withCors(errorResponse(err.message || "Failed to update lead", 500), request, env);
+    console.error("Airtable booking update failed:", err);
+    await logBookingError(env, recordId, "airtable_update", err, errorContext);
   }
+
+  try {
+    await sendBookingWebhook(env, body, recordId);
+  } catch (webhookErr) {
+    console.error("Make booking webhook error:", webhookErr);
+    await logBookingError(env, recordId, "make_booking_webhook", webhookErr, errorContext);
+  }
+
+  return withCors(
+    jsonResponse({
+      ok: true,
+      recordId,
+      airtableOk,
+    }),
+    request,
+    env
+  );
 }

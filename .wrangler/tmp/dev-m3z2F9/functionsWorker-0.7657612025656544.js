@@ -77,7 +77,8 @@ var DEFAULT_FIELDS = {
   depositStatus: "depositStatus",
   paymentIntentId: "paymentIntentId",
   stripeCustomerId: "stripeCustomerId",
-  stripePaymentMethodId: "stripePaymentMethodId"
+  stripePaymentMethodId: "stripePaymentMethodId",
+  error: "error"
 };
 function getFieldMap(env) {
   if (!env.AIRTABLE_FIELD_MAP) return { ...DEFAULT_FIELDS };
@@ -171,10 +172,40 @@ function leadFieldsFromPayload(payload, fieldMap) {
   set("paymentIntentId", payload.paymentIntentId);
   set("stripeCustomerId", payload.stripeCustomerId);
   set("stripePaymentMethodId", payload.stripePaymentMethodId);
+  set("error", payload.error);
   return fields;
 }
 __name(leadFieldsFromPayload, "leadFieldsFromPayload");
 __name2(leadFieldsFromPayload, "leadFieldsFromPayload");
+async function getLeadRecord(env, recordId) {
+  return airtableFetch(env, "GET", void 0, recordId);
+}
+__name(getLeadRecord, "getLeadRecord");
+__name2(getLeadRecord, "getLeadRecord");
+async function appendLeadError(env, recordId, message) {
+  const fieldMap = getFieldMap(env);
+  const errorField = fieldMap.error;
+  if (!errorField) {
+    throw new Error("Airtable error field is not configured");
+  }
+  let existing = "";
+  try {
+    const record = await getLeadRecord(env, recordId);
+    if (record?.fields?.[errorField]) {
+      existing = `
+
+---
+
+${String(record.fields[errorField])}`;
+    }
+  } catch {
+    existing = "";
+  }
+  const fields = { [errorField]: `${message}${existing}` };
+  return airtableFetch(env, "PATCH", { fields }, recordId);
+}
+__name(appendLeadError, "appendLeadError");
+__name2(appendLeadError, "appendLeadError");
 function escapeFormulaValue(value) {
   return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
@@ -223,6 +254,45 @@ async function updateLead(env, recordId, payload) {
 }
 __name(updateLead, "updateLead");
 __name2(updateLead, "updateLead");
+function formatBookingError(stage, err, context = {}) {
+  const lines = [
+    `=== Booking error ===`,
+    `Stage: ${stage}`,
+    `Time: ${(/* @__PURE__ */ new Date()).toISOString()}`,
+    `Message: ${err?.message || String(err)}`
+  ];
+  if (context.recordId) lines.push(`Airtable record: ${context.recordId}`);
+  if (context.paymentIntentId) {
+    lines.push(`PaymentIntent: ${context.paymentIntentId}`);
+  }
+  if (err?.stack) lines.push(`Stack:
+${err.stack}`);
+  const payload = context.payload || context.body;
+  if (payload) {
+    try {
+      lines.push(`Payload:
+${JSON.stringify(payload, null, 2)}`);
+    } catch {
+      lines.push("Payload: [unserializable]");
+    }
+  }
+  return lines.join("\n");
+}
+__name(formatBookingError, "formatBookingError");
+__name2(formatBookingError, "formatBookingError");
+async function logBookingError(env, recordId, stage, err, context = {}) {
+  const text = formatBookingError(stage, err, { ...context, recordId });
+  try {
+    await appendLeadError(env, recordId, text);
+    return { logged: true };
+  } catch (logErr) {
+    console.error("Failed to write Airtable error field:", logErr);
+    console.error(text);
+    return { logged: false, logErr };
+  }
+}
+__name(logBookingError, "logBookingError");
+__name2(logBookingError, "logBookingError");
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -403,18 +473,34 @@ async function onRequestPatch(context) {
   } catch {
     return withCors(errorResponse("Invalid JSON body"), request, env);
   }
+  const errorContext = {
+    recordId,
+    paymentIntentId: body.paymentIntentId ?? null,
+    payload: body
+  };
+  let airtableOk = false;
   try {
     await updateLead(env, recordId, body);
-    try {
-      await sendBookingWebhook(env, body, recordId);
-    } catch (webhookErr) {
-      console.error("Make booking webhook error:", webhookErr);
-    }
-    return withCors(jsonResponse({ ok: true, recordId }), request, env);
+    airtableOk = true;
   } catch (err) {
-    console.error(err);
-    return withCors(errorResponse(err.message || "Failed to update lead", 500), request, env);
+    console.error("Airtable booking update failed:", err);
+    await logBookingError(env, recordId, "airtable_update", err, errorContext);
   }
+  try {
+    await sendBookingWebhook(env, body, recordId);
+  } catch (webhookErr) {
+    console.error("Make booking webhook error:", webhookErr);
+    await logBookingError(env, recordId, "make_booking_webhook", webhookErr, errorContext);
+  }
+  return withCors(
+    jsonResponse({
+      ok: true,
+      recordId,
+      airtableOk
+    }),
+    request,
+    env
+  );
 }
 __name(onRequestPatch, "onRequestPatch");
 __name2(onRequestPatch, "onRequestPatch");
