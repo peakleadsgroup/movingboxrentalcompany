@@ -1,4 +1,5 @@
-import { errorResponse, jsonResponse, parseServicedZips, withCors } from "../_lib/env.js";
+import { isServicedZip } from "../_lib/serviced-zips.js";
+import { errorResponse, jsonResponse, withCors } from "../_lib/env.js";
 
 export async function onRequestOptions(context) {
   const { request, env } = context;
@@ -32,29 +33,13 @@ export async function onRequestPost(context) {
     return withCors(errorResponse("Zip must be 5 digits"), request, env);
   }
 
-  const serviced = parseServicedZips(env);
-  if (serviced.size === 0) {
-    return withCors(
-      jsonResponse({
-        ok: true,
-        zip,
-        serviced: true,
-        warning: "SERVICED_ZIPS not configured; all zips accepted",
-      }),
-      request,
-      env
-    );
-  }
-
-  const isServiced = serviced.has(zip);
+  const serviced = isServicedZip(zip);
   return withCors(
     jsonResponse({
       ok: true,
       zip,
-      serviced: isServiced,
-      message: isServiced
-        ? null
-        : "We don't service moving to that zip code yet.",
+      serviced,
+      message: serviced ? null : "We don't service that zip code yet.",
     }),
     request,
     env

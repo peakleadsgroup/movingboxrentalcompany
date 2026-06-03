@@ -333,21 +333,6 @@ function withCors(response, request, env) {
 }
 __name(withCors, "withCors");
 __name2(withCors, "withCors");
-function parseServicedZips(env) {
-  const raw = env.SERVICED_ZIPS || "";
-  if (!raw.trim()) return /* @__PURE__ */ new Set();
-  try {
-    if (raw.trim().startsWith("[")) {
-      return new Set(JSON.parse(raw).map((z) => String(z).padStart(5, "0")));
-    }
-  } catch {
-  }
-  return new Set(
-    raw.split(/[\s,;]+/).map((z) => z.trim()).filter((z) => /^\d{5}$/.test(z))
-  );
-}
-__name(parseServicedZips, "parseServicedZips");
-__name2(parseServicedZips, "parseServicedZips");
 function depositAmountCents(env) {
   const n = parseInt(env.DEPOSIT_AMOUNT_CENTS || "10000", 10);
   return Number.isFinite(n) && n > 0 ? n : 1e4;
@@ -504,6 +489,106 @@ async function onRequestPatch(context) {
 }
 __name(onRequestPatch, "onRequestPatch");
 __name2(onRequestPatch, "onRequestPatch");
+var SERVICED_ZIP_LIST = [
+  "28320",
+  "28328",
+  "28332",
+  "28337",
+  "28349",
+  "28393",
+  "28398",
+  "28401",
+  "28402",
+  "28403",
+  "28404",
+  "28405",
+  "28406",
+  "28407",
+  "28408",
+  "28409",
+  "28410",
+  "28411",
+  "28412",
+  "28420",
+  "28421",
+  "28422",
+  "28423",
+  "28424",
+  "28425",
+  "28428",
+  "28429",
+  "28430",
+  "28431",
+  "28432",
+  "28433",
+  "28434",
+  "28435",
+  "28436",
+  "28438",
+  "28441",
+  "28442",
+  "28443",
+  "28444",
+  "28445",
+  "28447",
+  "28448",
+  "28449",
+  "28450",
+  "28451",
+  "28452",
+  "28453",
+  "28454",
+  "28455",
+  "28456",
+  "28457",
+  "28458",
+  "28459",
+  "28460",
+  "28461",
+  "28462",
+  "28463",
+  "28464",
+  "28465",
+  "28466",
+  "28467",
+  "28468",
+  "28469",
+  "28470",
+  "28472",
+  "28478",
+  "28479",
+  "28480",
+  "28518",
+  "28521",
+  "28522",
+  "28539",
+  "28540",
+  "28541",
+  "28542",
+  "28543",
+  "28544",
+  "28545",
+  "28546",
+  "28547",
+  "28555",
+  "28572",
+  "28574",
+  "28582",
+  "28584",
+  "28594",
+  "29566",
+  "29568",
+  "29582",
+  "29597",
+  "29598"
+];
+var SERVICED_ZIP_SET = new Set(SERVICED_ZIP_LIST);
+function isServicedZip(zip) {
+  const normalized = String(zip || "").trim();
+  return /^\d{5}$/.test(normalized) && SERVICED_ZIP_SET.has(normalized);
+}
+__name(isServicedZip, "isServicedZip");
+__name2(isServicedZip, "isServicedZip");
 async function onRequestOptions2(context) {
   const { request, env } = context;
   const origin = request.headers.get("Origin") || "";
@@ -534,26 +619,13 @@ async function onRequestPost(context) {
   if (!/^\d{5}$/.test(zip)) {
     return withCors(errorResponse("Zip must be 5 digits"), request, env);
   }
-  const serviced = parseServicedZips(env);
-  if (serviced.size === 0) {
-    return withCors(
-      jsonResponse({
-        ok: true,
-        zip,
-        serviced: true,
-        warning: "SERVICED_ZIPS not configured; all zips accepted"
-      }),
-      request,
-      env
-    );
-  }
-  const isServiced = serviced.has(zip);
+  const serviced = isServicedZip(zip);
   return withCors(
     jsonResponse({
       ok: true,
       zip,
-      serviced: isServiced,
-      message: isServiced ? null : "We don't service moving to that zip code yet."
+      serviced,
+      message: serviced ? null : "We don't service that zip code yet."
     }),
     request,
     env

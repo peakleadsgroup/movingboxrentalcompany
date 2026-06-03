@@ -3,6 +3,7 @@ import {
   BOX_DIMENSIONS,
   DEFAULT_PACK_ID,
 } from "./pricing.js";
+import { isServicedZip } from "./serviced-zips.js";
 
 const AUTO_ADVANCE_DELAY = 350;
 const TOTAL_STEPS = 8;
@@ -147,7 +148,7 @@ function goBack() {
   showStep(currentStep - 1);
 }
 
-async function checkZipServiced(zip, errorEl, inputEl) {
+function checkZipServiced(zip, errorEl, inputEl) {
   if (!isValidZip(zip)) {
     inputEl.classList.add("invalid");
     errorEl.textContent = "Enter a valid 5-digit zip code.";
@@ -155,30 +156,16 @@ async function checkZipServiced(zip, errorEl, inputEl) {
     return false;
   }
 
-  try {
-    const res = await fetch(API.checkZip, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ zip }),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.ok) {
-      throw new Error(data.error || "Zip check failed");
-    }
-    if (!data.serviced) {
-      inputEl.classList.add("invalid");
-      errorEl.textContent =
-        data.message || "We don't service moving to that zip code yet.";
-      errorEl.classList.add("visible");
-      return false;
-    }
-    inputEl.classList.remove("invalid");
-    errorEl.classList.remove("visible");
-    return true;
-  } catch {
-    showFormError("Unable to verify zip code. Please try again.");
+  if (!isServicedZip(zip)) {
+    inputEl.classList.add("invalid");
+    errorEl.textContent = "We don't service that zip code yet.";
+    errorEl.classList.add("visible");
     return false;
   }
+
+  inputEl.classList.remove("invalid");
+  errorEl.classList.remove("visible");
+  return true;
 }
 
 function renderPackOptions() {

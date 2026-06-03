@@ -27,7 +27,7 @@ npx wrangler pages dev .
 | `STRIPE_SECRET_KEY` | Yes | Secret key (`sk_live_...` or `sk_test_...`) from [Stripe Dashboard](https://dashboard.stripe.com/apikeys) |
 | `STRIPE_PUBLISHABLE_KEY` | No* | Publishable key (`pk_...`) — exposed to the browser via `/api/config` |
 | `GOOGLE_MAPS_API_KEY` | No* | API key with **Maps JavaScript API** and **Places API** enabled — exposed via `/api/config` |
-| `SERVICED_ZIPS` | No | Comma-separated 5-digit zips **or** JSON array, e.g. `78701,78702` or `["78701","78702"]` |
+| `SERVICED_ZIPS` | No | **Unused** — service area is hardcoded in `js/serviced-zips.js` (NC/SC zips). Edit that file to change coverage. |
 
 \* Treat as sensitive in practice; restrict Google key by HTTP referrer and Stripe key by domain in each provider’s dashboard.
 
@@ -194,7 +194,7 @@ curl https://api.stripe.com/v1/payment_intents \
 
 ### Serviced zip codes
 
-Add every zip you service to `SERVICED_ZIPS`. If empty, **all valid zips are accepted** (dev-friendly; set zips before launch).
+Allowed zips are **hardcoded** in `js/serviced-zips.js` (also enforced by `/api/check-zip`). Edit that list to change your service area.
 
 ## Assets
 
