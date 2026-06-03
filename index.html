@@ -310,10 +310,19 @@
       animation: stepIn 0.3s ease;
     }
 
-    #addressStreetBlock .text-input[readonly],
-    #addressSearch[readonly] {
+    #addressStreetBlock .text-input[readonly] {
       background: var(--gray-50);
       cursor: default;
+    }
+
+    .place-autocomplete-host {
+      width: 100%;
+      display: block;
+    }
+
+    .place-autocomplete-host gmp-place-autocomplete {
+      width: 100%;
+      display: block;
     }
 
     .change-address-btn {
@@ -569,7 +578,7 @@
           <fieldset class="form-step" data-step="5" data-manual-advance>
             <legend>Drop-off location</legend>
             <div id="addressLookup">
-              <input class="text-input text-left" type="text" id="addressSearch" placeholder="Search for your address" autocomplete="off" aria-label="Search address" aria-describedby="addressHint addressError">
+              <div id="placeAutocompleteHost" class="place-autocomplete-host" aria-describedby="addressHint addressError"></div>
               <p id="addressHint" class="field-hint text-left">Start typing, then choose an address from the list.</p>
             </div>
             <div id="addressStreetBlock" hidden>
@@ -625,6 +634,6 @@
     <footer>&copy; <span id="year"></span> Moving Box Rental Company</footer>
   </div>
 
-  <script type="module" src="/js/app.js"></script>
+  <script type="module" src="/js/app.js?v=3"></script>
 </body>
 </html>

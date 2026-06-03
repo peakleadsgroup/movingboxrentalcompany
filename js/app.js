@@ -26,7 +26,7 @@ const state = {
   stripeCustomerId: null,
   config: null,
   mapsReady: false,
-  autocomplete: null,
+  placeAutocomplete: null,
   addressConfirmed: false,
   savingLead: false,
   submissionId: null,
@@ -278,9 +278,7 @@ function setAddressHidden(id, hidden) {
 }
 
 function getDropoffStreetValue() {
-  const hidden = addressEl("dropoffStreet")?.value.trim();
-  if (hidden) return hidden;
-  return addressEl("addressSearch")?.value.trim() || "";
+  return addressEl("dropoffStreet")?.value.trim() || "";
 }
 
 function showAddressLookup() {
@@ -288,18 +286,15 @@ function showAddressLookup() {
   setAddressHidden("addressLookup", false);
   setAddressHidden("addressStreetBlock", true);
 
-  const search = addressEl("addressSearch");
-  if (search) {
-    search.value = "";
-    search.readOnly = false;
-    search.classList.remove("invalid");
-  }
-
   const streetVisible = addressEl("dropoffStreetVisible");
   if (streetVisible) streetVisible.value = "";
 
   const hint = addressEl("addressHint");
   if (hint) hint.hidden = false;
+
+  if (state.placeAutocomplete?.value !== undefined) {
+    state.placeAutocomplete.value = "";
+  }
 }
 
 function showAddressConfirmed(street, city, stateCode, zip) {
@@ -315,22 +310,15 @@ function showAddressConfirmed(street, city, stateCode, zip) {
   if (zipField) zipField.value = zip;
 
   const streetVisible = addressEl("dropoffStreetVisible");
-  const search = addressEl("addressSearch");
   const streetBlock = addressEl("addressStreetBlock");
 
   if (streetBlock && streetVisible) {
     streetVisible.value = street;
     setAddressHidden("addressLookup", true);
     setAddressHidden("addressStreetBlock", false);
-  } else if (search) {
-    search.value = street;
-    search.readOnly = true;
-    const hint = addressEl("addressHint");
-    if (hint) hint.hidden = true;
   }
 
   addressEl("addressError")?.classList.remove("visible");
-  search?.classList.remove("invalid");
 }
 
 function resetAddressDetails() {
@@ -355,21 +343,12 @@ function collectDropoffPayload() {
 }
 
 function validateDropoffAddress() {
-  const searchEl = addressEl("addressSearch");
   const street = getDropoffStreetValue();
   const city = addressEl("dropoffCity")?.value.trim() || "";
   const stateCode = addressEl("dropoffState")?.value.trim() || "";
   const zip = addressEl("dropoffZip")?.value.trim() || "";
   const valid =
     state.addressConfirmed && street && city && stateCode && zip;
-
-  if (searchEl) {
-    if (!valid && !state.addressConfirmed) {
-      searchEl.classList.add("invalid");
-    } else {
-      searchEl.classList.remove("invalid");
-    }
-  }
 
   addressEl("addressError")?.classList.toggle("visible", !valid);
   return valid;
@@ -590,10 +569,42 @@ async function ensureGoogleMaps() {
   if (!config.googleMapsApiKey) {
     throw new Error("Google Maps API key is not configured");
   }
-  await loadScript(
-    `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(config.googleMapsApiKey)}&libraries=places`
-  );
+
+  const key = encodeURIComponent(config.googleMapsApiKey);
+
+  if (!window.google?.maps?.importLibrary) {
+    await new Promise((resolve, reject) => {
+      const existing = document.querySelector("script[data-maps-loader]");
+      if (existing) {
+        existing.addEventListener("load", () => resolve(), { once: true });
+        if (window.google?.maps) resolve();
+        return;
+      }
+      const s = document.createElement("script");
+      s.dataset.mapsLoader = "1";
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async`;
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  await google.maps.importLibrary("places");
   state.mapsReady = true;
+}
+
+function placeToLegacyFormat(place) {
+  const components = place.addressComponents || [];
+  return {
+    address_components: components.map((c) => ({
+      long_name: c.longText || "",
+      short_name: c.shortText || "",
+      types: c.types || [],
+    })),
+    formatted_address: place.formattedAddress || "",
+    name: place.displayName || "",
+  };
 }
 
 function parsePlaceAddress(place) {
@@ -630,7 +641,6 @@ function fillAddressFromPlace(place) {
   const { streetLine, city, stateCode, zip } = parsePlaceAddress(place);
   if (!streetLine || !city || !stateCode || !zip) {
     addressEl("addressError")?.classList.add("visible");
-    addressEl("addressSearch")?.classList.add("invalid");
     return;
   }
 
@@ -640,28 +650,37 @@ function fillAddressFromPlace(place) {
 async function initAddressAutocomplete() {
   try {
     await ensureGoogleMaps();
-    const input = document.getElementById("addressSearch");
-    if (!input || state.autocomplete) return;
+    if (state.placeAutocomplete) return;
 
-    state.autocomplete = new google.maps.places.Autocomplete(input, {
-      types: ["address"],
-      componentRestrictions: { country: "us" },
-      fields: ["address_components", "formatted_address", "name"],
+    const host = addressEl("placeAutocompleteHost");
+    if (!host) {
+      throw new Error("Address search is not available on this page.");
+    }
+
+    const { PlaceAutocompleteElement } = google.maps.places;
+    const widget = new PlaceAutocompleteElement({
+      includedRegionCodes: ["us"],
     });
 
-    state.autocomplete.addListener("place_changed", () => {
-      const place = state.autocomplete.getPlace();
-      if (!place || !place.address_components) return;
-      fillAddressFromPlace(place);
-    });
+    host.replaceChildren(widget);
+    state.placeAutocomplete = widget;
 
-    input.addEventListener("input", () => {
-      if (!input.value.trim() && !state.addressConfirmed) {
-        resetAddressDetails();
+    widget.addEventListener("gmp-placeselect", async (event) => {
+      const place = event.place;
+      if (!place) return;
+
+      try {
+        await place.fetchFields({
+          fields: ["addressComponents", "formattedAddress", "displayName"],
+        });
+        fillAddressFromPlace(placeToLegacyFormat(place));
+      } catch (err) {
+        console.error(err);
+        addressEl("addressError")?.classList.add("visible");
       }
     });
-
   } catch (err) {
+    console.error(err);
     showFormError(err.message || "Address lookup is unavailable.");
   }
 }
@@ -869,7 +888,7 @@ function showSuccess() {
 
 document.getElementById("changeAddressBtn")?.addEventListener("click", () => {
   resetAddressDetails();
-  setTimeout(() => document.getElementById("addressSearch")?.focus(), 50);
+  setTimeout(() => state.placeAutocomplete?.focus?.(), 50);
 });
 
 buildTimeOptions();
