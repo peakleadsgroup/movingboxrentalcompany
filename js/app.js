@@ -659,7 +659,7 @@ function updatePaymentStepCopy() {
     summary.textContent = `A ${depositDisplay} deposit is due today to reserve your boxes. The remaining balance of ${remaining} will be charged at delivery.`;
   }
   if (payBtn && payBtn.dataset.processing !== "1") {
-    payBtn.textContent = `Pay ${depositDisplay} deposit`;
+    payBtn.textContent = "Reserve my boxes";
   }
 }
 
