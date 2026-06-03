@@ -268,37 +268,78 @@ function collectLeadPayload(partial = {}) {
   };
 }
 
+function addressEl(id) {
+  return document.getElementById(id);
+}
+
+function setAddressHidden(id, hidden) {
+  const el = addressEl(id);
+  if (el) el.hidden = hidden;
+}
+
 function getDropoffStreetValue() {
-  return document.getElementById("dropoffStreet").value.trim();
+  const hidden = addressEl("dropoffStreet")?.value.trim();
+  if (hidden) return hidden;
+  return addressEl("addressSearch")?.value.trim() || "";
 }
 
 function showAddressLookup() {
   state.addressConfirmed = false;
-  document.getElementById("addressLookup").hidden = false;
-  document.getElementById("addressStreetBlock").hidden = true;
-  document.getElementById("addressSearch").value = "";
-  document.getElementById("addressSearch").classList.remove("invalid");
+  setAddressHidden("addressLookup", false);
+  setAddressHidden("addressStreetBlock", true);
+
+  const search = addressEl("addressSearch");
+  if (search) {
+    search.value = "";
+    search.readOnly = false;
+    search.classList.remove("invalid");
+  }
+
+  const streetVisible = addressEl("dropoffStreetVisible");
+  if (streetVisible) streetVisible.value = "";
+
+  const hint = addressEl("addressHint");
+  if (hint) hint.hidden = false;
 }
 
-function showAddressConfirmed(street, city, state, zip) {
+function showAddressConfirmed(street, city, stateCode, zip) {
   state.addressConfirmed = true;
-  document.getElementById("dropoffStreet").value = street;
-  document.getElementById("dropoffCity").value = city;
-  document.getElementById("dropoffState").value = state;
-  document.getElementById("dropoffZip").value = zip;
-  document.getElementById("dropoffStreetVisible").value = street;
-  document.getElementById("addressLookup").hidden = true;
-  document.getElementById("addressStreetBlock").hidden = false;
-  document.getElementById("addressError").classList.remove("visible");
-  document.getElementById("addressSearch").classList.remove("invalid");
+
+  const streetField = addressEl("dropoffStreet");
+  const cityField = addressEl("dropoffCity");
+  const stateField = addressEl("dropoffState");
+  const zipField = addressEl("dropoffZip");
+  if (streetField) streetField.value = street;
+  if (cityField) cityField.value = city;
+  if (stateField) stateField.value = stateCode;
+  if (zipField) zipField.value = zip;
+
+  const streetVisible = addressEl("dropoffStreetVisible");
+  const search = addressEl("addressSearch");
+  const streetBlock = addressEl("addressStreetBlock");
+
+  if (streetBlock && streetVisible) {
+    streetVisible.value = street;
+    setAddressHidden("addressLookup", true);
+    setAddressHidden("addressStreetBlock", false);
+  } else if (search) {
+    search.value = street;
+    search.readOnly = true;
+    const hint = addressEl("addressHint");
+    if (hint) hint.hidden = true;
+  }
+
+  addressEl("addressError")?.classList.remove("visible");
+  search?.classList.remove("invalid");
 }
 
 function resetAddressDetails() {
-  document.getElementById("dropoffStreet").value = "";
-  document.getElementById("dropoffCity").value = "";
-  document.getElementById("dropoffState").value = "";
-  document.getElementById("dropoffZip").value = "";
-  document.getElementById("dropoffStreetVisible").value = "";
+  ["dropoffStreet", "dropoffCity", "dropoffState", "dropoffZip"].forEach((id) => {
+    const el = addressEl(id);
+    if (el) el.value = "";
+  });
+  const streetVisible = addressEl("dropoffStreetVisible");
+  if (streetVisible) streetVisible.value = "";
   showAddressLookup();
 }
 
@@ -314,21 +355,23 @@ function collectDropoffPayload() {
 }
 
 function validateDropoffAddress() {
-  const searchEl = document.getElementById("addressSearch");
+  const searchEl = addressEl("addressSearch");
   const street = getDropoffStreetValue();
-  const city = document.getElementById("dropoffCity").value.trim();
-  const stateCode = document.getElementById("dropoffState").value.trim();
-  const zip = document.getElementById("dropoffZip").value.trim();
+  const city = addressEl("dropoffCity")?.value.trim() || "";
+  const stateCode = addressEl("dropoffState")?.value.trim() || "";
+  const zip = addressEl("dropoffZip")?.value.trim() || "";
   const valid =
     state.addressConfirmed && street && city && stateCode && zip;
 
-  if (!valid && !state.addressConfirmed) {
-    searchEl.classList.add("invalid");
-  } else {
-    searchEl.classList.remove("invalid");
+  if (searchEl) {
+    if (!valid && !state.addressConfirmed) {
+      searchEl.classList.add("invalid");
+    } else {
+      searchEl.classList.remove("invalid");
+    }
   }
 
-  document.getElementById("addressError").classList.toggle("visible", !valid);
+  addressEl("addressError")?.classList.toggle("visible", !valid);
   return valid;
 }
 
@@ -553,11 +596,12 @@ async function ensureGoogleMaps() {
   state.mapsReady = true;
 }
 
-function fillAddressFromPlace(place) {
+function parsePlaceAddress(place) {
   const components = {};
   for (const c of place.address_components || []) {
-    const type = c.types[0];
-    components[type] = c.long_name;
+    for (const type of c.types) {
+      if (!components[type]) components[type] = c.long_name;
+    }
     if (c.types.includes("administrative_area_level_1")) {
       components.state = c.short_name;
     }
@@ -569,9 +613,26 @@ function fillAddressFromPlace(place) {
   const streetLine =
     street || place.name || place.formatted_address?.split(",")[0]?.trim() || "";
   const city =
-    components.locality || components.postal_town || components.sublocality || "";
+    components.locality ||
+    components.postal_town ||
+    components.sublocality_level_1 ||
+    components.sublocality ||
+    "";
   const stateCode = components.state || "";
   const zip = components.postal_code || "";
+
+  return { streetLine, city, stateCode, zip };
+}
+
+function fillAddressFromPlace(place) {
+  if (!place) return;
+
+  const { streetLine, city, stateCode, zip } = parsePlaceAddress(place);
+  if (!streetLine || !city || !stateCode || !zip) {
+    addressEl("addressError")?.classList.add("visible");
+    addressEl("addressSearch")?.classList.add("invalid");
+    return;
+  }
 
   showAddressConfirmed(streetLine, city, stateCode, zip);
 }
