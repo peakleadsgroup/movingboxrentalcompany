@@ -843,25 +843,14 @@ function showSuccess() {
 
   loadScript("https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js")
     .then(() => {
-      const duration = 2500;
-      const end = Date.now() + duration;
-      (function frame() {
-        confetti({
-          particleCount: 4,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0 },
-          colors: ["#002d5b", "#c49a6c", "#ffffff"],
-        });
-        confetti({
-          particleCount: 4,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1 },
-          colors: ["#002d5b", "#c49a6c", "#ffffff"],
-        });
-        if (Date.now() < end) requestAnimationFrame(frame);
-      })();
+      const colors = ["#002d5b", "#c49a6c", "#ffffff"];
+      confetti({
+        particleCount: 35,
+        spread: 60,
+        startVelocity: 28,
+        origin: { y: 0.55 },
+        colors,
+      });
     })
     .catch(() => {});
 
