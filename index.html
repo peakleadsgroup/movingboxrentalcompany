@@ -310,6 +310,14 @@
       gap: 0.75rem;
     }
 
+    #street {
+      display: block;
+      width: 100%;
+      min-height: 3rem;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
     .address-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -572,7 +580,7 @@
             <div class="address-grid">
               <div>
                 <label class="field-hint text-left" for="street">Street address</label>
-                <input class="text-input text-left" type="text" id="street" placeholder="Street address" autocomplete="off" aria-describedby="addressError">
+                <input class="text-input text-left" type="text" id="street" name="street" placeholder="Street address" autocomplete="street-address" aria-describedby="addressHint addressError" required>
               </div>
               <div id="cityField" class="hidden-initially">
                 <label class="field-hint text-left" for="city">City</label>
@@ -633,6 +641,6 @@
     <footer>&copy; <span id="year"></span> Moving Box Rental Company</footer>
   </div>
 
-  <script type="module" src="/js/app.js?v=6"></script>
+  <script type="module" src="/js/app.js?v=7"></script>
 </body>
 </html>
