@@ -20,13 +20,14 @@ const state = {
   packId: DEFAULT_PACK_ID,
   stripe: null,
   elements: null,
-  paymentElement: null,
+  cardElement: null,
   clientSecret: null,
   paymentIntentId: null,
   stripeCustomerId: null,
   config: null,
   mapsReady: false,
   autocomplete: null,
+  addressConfirmed: false,
 };
 
 const form = document.getElementById("quoteForm");
@@ -94,7 +95,7 @@ function updateProgress() {
 
 function focusStepInput(stepEl) {
   const focusable = stepEl.querySelector(
-    'input:not([type=radio]):not([type=hidden]):not([readonly]), button[data-continue], button[data-submit-contact], button[data-pay]'
+    'input:not([type=radio]):not([type=hidden]):not([readonly]):not(:disabled), button[data-continue], button[data-submit-contact], button[data-pay]'
   );
   if (focusable) {
     setTimeout(() => focusable.focus(), 320);
@@ -257,10 +258,29 @@ function collectLeadPayload(partial = {}) {
   };
 }
 
-function syncDropoffStreetFromSearch() {
-  const street = document.getElementById("addressSearch").value.trim();
+function getDropoffStreetValue() {
+  return document.getElementById("dropoffStreet").value.trim();
+}
+
+function showAddressLookup() {
+  state.addressConfirmed = false;
+  document.getElementById("addressLookup").hidden = false;
+  document.getElementById("addressStreetBlock").hidden = true;
+  document.getElementById("addressSearch").value = "";
+  document.getElementById("addressSearch").classList.remove("invalid");
+}
+
+function showAddressConfirmed(street, city, state, zip) {
+  state.addressConfirmed = true;
   document.getElementById("dropoffStreet").value = street;
-  return street;
+  document.getElementById("dropoffCity").value = city;
+  document.getElementById("dropoffState").value = state;
+  document.getElementById("dropoffZip").value = zip;
+  document.getElementById("dropoffStreetVisible").value = street;
+  document.getElementById("addressLookup").hidden = true;
+  document.getElementById("addressStreetBlock").hidden = false;
+  document.getElementById("addressError").classList.remove("visible");
+  document.getElementById("addressSearch").classList.remove("invalid");
 }
 
 function resetAddressDetails() {
@@ -268,16 +288,13 @@ function resetAddressDetails() {
   document.getElementById("dropoffCity").value = "";
   document.getElementById("dropoffState").value = "";
   document.getElementById("dropoffZip").value = "";
-  document.getElementById("addressFields").hidden = true;
-  document.getElementById("addressSearch").classList.remove("invalid");
-  ["dropoffCity", "dropoffState", "dropoffZip"].forEach((id) => {
-    document.getElementById(id).classList.remove("invalid");
-  });
+  document.getElementById("dropoffStreetVisible").value = "";
+  showAddressLookup();
 }
 
 function collectDropoffPayload() {
   return {
-    dropoffStreet: syncDropoffStreetFromSearch(),
+    dropoffStreet: getDropoffStreetValue(),
     dropoffCity: document.getElementById("dropoffCity").value.trim(),
     dropoffState: document.getElementById("dropoffState").value.trim(),
     dropoffZip: document.getElementById("dropoffZip").value.trim(),
@@ -288,27 +305,18 @@ function collectDropoffPayload() {
 
 function validateDropoffAddress() {
   const searchEl = document.getElementById("addressSearch");
-  const detailsEl = document.getElementById("addressFields");
-  const street = syncDropoffStreetFromSearch();
-  let valid = true;
+  const street = getDropoffStreetValue();
+  const city = document.getElementById("dropoffCity").value.trim();
+  const stateCode = document.getElementById("dropoffState").value.trim();
+  const zip = document.getElementById("dropoffZip").value.trim();
+  const valid =
+    state.addressConfirmed && street && city && stateCode && zip;
 
-  if (!street) {
+  if (!valid && !state.addressConfirmed) {
     searchEl.classList.add("invalid");
-    valid = false;
   } else {
     searchEl.classList.remove("invalid");
   }
-
-  if (detailsEl.hidden) {
-    valid = false;
-  }
-
-  ["dropoffCity", "dropoffState", "dropoffZip"].forEach((id) => {
-    const el = document.getElementById(id);
-    const empty = !el.value.trim();
-    el.classList.toggle("invalid", empty);
-    if (empty) valid = false;
-  });
 
   document.getElementById("addressError").classList.toggle("visible", !valid);
   return valid;
@@ -534,18 +542,12 @@ function fillAddressFromPlace(place) {
   const street = [streetNumber, route].filter(Boolean).join(" ");
   const streetLine =
     street || place.name || place.formatted_address?.split(",")[0]?.trim() || "";
-
-  const searchEl = document.getElementById("addressSearch");
-  searchEl.value = streetLine;
-  document.getElementById("dropoffStreet").value = streetLine;
-  document.getElementById("dropoffCity").value =
+  const city =
     components.locality || components.postal_town || components.sublocality || "";
-  document.getElementById("dropoffState").value = components.state || "";
-  document.getElementById("dropoffZip").value = components.postal_code || "";
+  const stateCode = components.state || "";
+  const zip = components.postal_code || "";
 
-  searchEl.classList.remove("invalid");
-  document.getElementById("addressError").classList.remove("visible");
-  document.getElementById("addressFields").hidden = false;
+  showAddressConfirmed(streetLine, city, stateCode, zip);
 }
 
 async function initAddressAutocomplete() {
@@ -567,10 +569,11 @@ async function initAddressAutocomplete() {
     });
 
     input.addEventListener("input", () => {
-      if (!input.value.trim()) {
+      if (!input.value.trim() && !state.addressConfirmed) {
         resetAddressDetails();
       }
     });
+
   } catch (err) {
     showFormError(err.message || "Address lookup is unavailable.");
   }
@@ -603,6 +606,26 @@ function setMinDropoffDate() {
   dateEl.min = iso;
 }
 
+function formatRemainingBalance() {
+  const selection = getSelectedPack();
+  const weekly = selection?.pack?.weekly;
+  if (weekly == null || !Number.isFinite(weekly)) {
+    return "your rental total";
+  }
+  const depositCents = state.config?.depositAmountCents ?? 10000;
+  const depositDollars = depositCents / 100;
+  const remaining = Math.max(0, weekly - depositDollars);
+  return `$${remaining}`;
+}
+
+function updatePayButtonLabel() {
+  const payBtn = document.getElementById("payBtn");
+  if (!payBtn) return;
+  const remaining = formatRemainingBalance();
+  const depositDisplay = state.config?.depositAmountDisplay || "$100";
+  payBtn.textContent = `Reserve your boxes with a ${depositDisplay} deposit. The remaining balance of ${remaining} will be charged upon delivery`;
+}
+
 async function ensureStripe() {
   if (state.stripe) return state.stripe;
   const config = await ensureConfig();
@@ -617,7 +640,6 @@ async function ensureStripe() {
 async function initPaymentStep() {
   const mountEl = document.getElementById("paymentElement");
   const payBtn = document.getElementById("payBtn");
-  const depositLabel = document.getElementById("depositLabel");
 
   if (!state.recordId) {
     showFormError("Please complete your contact information first.");
@@ -625,8 +647,8 @@ async function initPaymentStep() {
   }
 
   try {
-    const config = await ensureConfig();
-    depositLabel.textContent = `Pay ${config.depositAmountDisplay} deposit to reserve your boxes`;
+    await ensureConfig();
+    updatePayButtonLabel();
 
     const stripe = await ensureStripe();
 
@@ -652,17 +674,10 @@ async function initPaymentStep() {
       state.stripeCustomerId = data.customerId;
     }
 
-    if (!state.paymentElement) {
+    if (!state.cardElement) {
       state.elements = stripe.elements({ clientSecret: state.clientSecret });
-      state.paymentElement = state.elements.create("payment", {
-        paymentMethodOrder: ["card"],
-        wallets: {
-          applePay: "never",
-          googlePay: "never",
-          link: "never",
-        },
-      });
-      state.paymentElement.mount(mountEl);
+      state.cardElement = state.elements.create("card");
+      state.cardElement.mount(mountEl);
     }
 
     payBtn.onclick = handlePayment;
@@ -681,13 +696,19 @@ async function handlePayment() {
     const stripe = await ensureStripe();
     const dropoff = collectDropoffPayload();
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements: state.elements,
-      confirmParams: {
-        return_url: window.location.href,
-      },
-      redirect: "if_required",
-    });
+    const lead = collectLeadPayload();
+    const { error, paymentIntent } = await stripe.confirmCardPayment(
+      state.clientSecret,
+      {
+        payment_method: {
+          card: state.cardElement,
+          billing_details: {
+            name: [lead.firstName, lead.lastName].filter(Boolean).join(" ").trim(),
+            phone: lead.phone ? `+1${lead.phone}` : undefined,
+          },
+        },
+      }
+    );
 
     if (error) {
       throw new Error(error.message);
@@ -706,11 +727,12 @@ async function handlePayment() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        ...collectLeadPayload({ depositStatus: "Paid" }),
         ...dropoff,
-        depositStatus: "Paid",
         paymentIntentId: state.paymentIntentId || paymentIntent?.id,
         stripeCustomerId: state.stripeCustomerId || paymentIntent?.customer || null,
         stripePaymentMethodId: paymentMethodId,
+        completedAt: new Date().toISOString(),
       }),
     });
     const data = await res.json();
@@ -722,7 +744,7 @@ async function handlePayment() {
   } catch (err) {
     showFormError(err.message || "Payment failed. Please try again.");
     payBtn.disabled = false;
-    payBtn.textContent = "Pay deposit & reserve";
+    updatePayButtonLabel();
   }
 }
 
@@ -757,6 +779,11 @@ function showSuccess() {
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+document.getElementById("changeAddressBtn")?.addEventListener("click", () => {
+  resetAddressDetails();
+  setTimeout(() => document.getElementById("addressSearch")?.focus(), 50);
+});
 
 buildTimeOptions();
 setMinDropoffDate();

@@ -1,5 +1,6 @@
 import { updateLead } from "../../_lib/airtable.js";
 import { errorResponse, jsonResponse, withCors } from "../../_lib/env.js";
+import { sendBookingWebhook } from "../../_lib/webhook.js";
 
 export async function onRequestOptions(context) {
   const { request, env } = context;
@@ -35,6 +36,13 @@ export async function onRequestPatch(context) {
 
   try {
     await updateLead(env, recordId, body);
+
+    try {
+      await sendBookingWebhook(env, body, recordId);
+    } catch (webhookErr) {
+      console.error("Make booking webhook error:", webhookErr);
+    }
+
     return withCors(jsonResponse({ ok: true, recordId }), request, env);
   } catch (err) {
     console.error(err);

@@ -38,8 +38,11 @@ npx wrangler pages dev .
 | `DEPOSIT_AMOUNT_CENTS` | `10000` | Deposit amount in cents ($100) |
 | `ALLOWED_ORIGIN` | — | If set, enables CORS for that origin only (usually unnecessary on same domain) |
 | `MAKE_LEAD_WEBHOOK_URL` | Make hook below | Fired on first Airtable create (contact step) |
+| `MAKE_BOOKING_WEBHOOK_URL` | Booking hook below | Fired on second Airtable update (after payment) |
 
-Default Make webhook: `https://hook.us2.make.com/pqvr2gify32nr99cybhb84feeofq4nww`
+Default lead webhook: `https://hook.us2.make.com/pqvr2gify32nr99cybhb84feeofq4nww`
+
+Default booking webhook: `https://hook.us2.make.com/t2aufkom38h8ik31i09ct6ey3jwit21u`
 
 ### Make webhook payload (`lead_created`)
 
@@ -64,6 +67,42 @@ Default Make webhook: `https://hook.us2.make.com/pqvr2gify32nr99cybhb84feeofq4nw
 ```
 
 Zips and rates are numbers (matching your Airtable Number fields). A test payload with this shape was sent to your Make hook.
+
+### Make booking webhook (`booking_completed`)
+
+Fired after the second Airtable update (drop-off + payment). Default URL: `https://hook.us2.make.com/t2aufkom38h8ik31i09ct6ey3jwit21u`
+
+Override with `MAKE_BOOKING_WEBHOOK_URL` in Cloudflare.
+
+```json
+{
+  "event": "booking_completed",
+  "airtableRecordId": "recXXXXXXXX",
+  "zipFrom": 78701,
+  "zipTo": 78704,
+  "rooms": "2 Bedrooms",
+  "packName": "📦📦 Standard Pack",
+  "weeklyRate": 162,
+  "additionalWeekRate": 81,
+  "packDetails": "40 boxes, 1 dolly, 4 lbs paper, dry erase markers",
+  "firstName": "Drew",
+  "lastName": "Williams",
+  "phone": "9193634740",
+  "submittedAt": "2026-06-03T18:30:00.000Z",
+  "source": "landing-page",
+  "depositStatus": "Paid",
+  "dropoffStreet": "1230 Shipyard Boulevard",
+  "dropoffCity": "Wilmington",
+  "dropoffState": "NC",
+  "dropoffZip": 28412,
+  "dropoffDate": "2026-06-10",
+  "dropoffTime": "14:00",
+  "paymentIntentId": "pi_TEST123",
+  "stripeCustomerId": "cus_TEST123",
+  "stripePaymentMethodId": "pm_TEST123",
+  "completedAt": "2026-06-03T19:15:00.000Z"
+}
+```
 | `AIRTABLE_FIELD_MAP` | — | JSON object mapping our payload keys to your Airtable column names (see below) |
 
 ### Airtable columns

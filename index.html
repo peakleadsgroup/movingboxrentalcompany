@@ -301,30 +301,24 @@
       .name-row { grid-template-columns: 1fr; }
     }
 
-    .address-grid {
-      display: grid;
-      gap: 0.65rem;
-      margin-top: 0.75rem;
-    }
-
-    .address-grid .row-2 {
-      display: grid;
-      grid-template-columns: 1fr 88px;
-      gap: 0.65rem;
-    }
-
-    #addressFields[hidden] {
+    #addressLookup[hidden],
+    #addressStreetBlock[hidden] {
       display: none !important;
     }
 
-    #addressFields:not([hidden]) {
-      display: grid;
+    #addressStreetBlock:not([hidden]) {
       animation: stepIn 0.3s ease;
     }
 
-    #addressFields .text-input[readonly] {
+    #addressStreetBlock .text-input[readonly] {
       background: var(--gray-50);
       cursor: default;
+    }
+
+    .change-address-btn {
+      margin-top: 0.5rem;
+      padding: 0.35rem 0;
+      font-size: 0.8rem;
     }
 
     .tcpa {
@@ -397,12 +391,14 @@
       min-height: 120px;
     }
 
-    .deposit-copy {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--navy);
-      text-align: center;
-      margin: 0 0 0.5rem;
+    .action-btn.pay-deposit {
+      text-transform: none;
+      font-size: clamp(0.78rem, 2.8vw, 0.9rem);
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 1.4;
+      white-space: normal;
+      padding: 1rem 1.1rem;
     }
 
     .success-panel {
@@ -571,16 +567,19 @@
 
           <fieldset class="form-step" data-step="5" data-manual-advance>
             <legend>Drop-off location</legend>
-            <input class="text-input text-left" type="text" id="addressSearch" placeholder="Street address" autocomplete="off" aria-label="Street address" aria-describedby="addressHint addressError">
-            <input type="hidden" id="dropoffStreet" name="dropoffStreet">
-            <p id="addressHint" class="field-hint text-left">Start typing, then choose an address from the list.</p>
-            <div id="addressFields" class="address-grid" hidden>
-              <input class="text-input text-left" type="text" id="dropoffCity" name="dropoffCity" placeholder="City" readonly tabindex="-1">
-              <div class="row-2">
-                <input class="text-input text-left" type="text" id="dropoffState" name="dropoffState" placeholder="State" maxlength="2" readonly tabindex="-1">
-                <input class="text-input text-left" type="text" id="dropoffZip" name="dropoffZip" placeholder="Zip" inputmode="numeric" maxlength="5" readonly tabindex="-1">
-              </div>
+            <div id="addressLookup">
+              <input class="text-input text-left" type="text" id="addressSearch" placeholder="Search for your address" autocomplete="off" aria-label="Search address" aria-describedby="addressHint addressError">
+              <p id="addressHint" class="field-hint text-left">Start typing, then choose an address from the list.</p>
             </div>
+            <div id="addressStreetBlock" hidden>
+              <label class="field-hint text-left" for="dropoffStreetVisible">Street address</label>
+              <input class="text-input text-left" type="text" id="dropoffStreetVisible" readonly tabindex="-1" aria-readonly="true">
+              <button type="button" class="action-btn secondary change-address-btn" id="changeAddressBtn">Change address</button>
+            </div>
+            <input type="hidden" id="dropoffStreet" name="dropoffStreet">
+            <input type="hidden" id="dropoffCity" name="dropoffCity">
+            <input type="hidden" id="dropoffState" name="dropoffState">
+            <input type="hidden" id="dropoffZip" name="dropoffZip">
             <p id="addressError" class="field-error text-left">Please select an address from the suggestions.</p>
             <div class="step-actions">
               <button type="button" class="action-btn primary" data-continue>Next</button>
@@ -608,12 +607,10 @@
           </fieldset>
 
           <fieldset class="form-step" data-step="7" data-manual-advance>
-            <legend>Reserve your boxes</legend>
-            <p class="deposit-copy" id="depositLabel">$100 deposit to reserve boxes</p>
-            <p class="field-hint text-left" style="margin-bottom: 0.75rem">Credit card only. Your card will be saved on file for future rental charges.</p>
+            <legend>Last step!</legend>
             <div id="paymentElement"></div>
             <div class="step-actions">
-              <button type="button" class="action-btn primary" id="payBtn" data-pay>Pay deposit &amp; reserve</button>
+              <button type="button" class="action-btn primary pay-deposit" id="payBtn" data-pay>Reserve your boxes</button>
             </div>
           </fieldset>
         </div>
