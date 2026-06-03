@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Moving Box Rental Company | Check Availability &amp; Pricing</title>
-  <meta name="description" content="Get moving box rental pricing and availability for your move. Fast quotes for apartments, houses, and offices.">
+  <title>Moving Box Rental Company | Instant Price &amp; Availability</title>
+  <meta name="description" content="Check moving box rental pricing, reserve your pack, and schedule delivery.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -23,9 +23,7 @@
       --radius: 12px;
     }
 
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
+    *, *::before, *::after { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -55,13 +53,8 @@
     }
 
     @media (max-width: 640px) {
-      .brand {
-        margin-bottom: 1rem;
-      }
-
-      .brand img {
-        width: min(72%, 200px);
-      }
+      .brand { margin-bottom: 1rem; }
+      .brand img { width: min(72%, 200px); }
     }
 
     .hero-card {
@@ -81,10 +74,11 @@
 
     .hero-header h1 {
       margin: 0;
-      font-size: clamp(1.15rem, 4vw, 1.35rem);
+      font-size: clamp(1rem, 3.8vw, 1.25rem);
       font-weight: 800;
       letter-spacing: 0.02em;
       text-transform: uppercase;
+      line-height: 1.35;
     }
 
     .hero-header::after {
@@ -99,19 +93,16 @@
 
     .form-body {
       padding: 1.5rem 1.5rem 1.75rem;
-      min-height: 320px;
+      min-height: 360px;
       display: flex;
       flex-direction: column;
     }
 
-    .step-progress {
-      margin-bottom: 1.25rem;
-    }
+    .step-progress { margin-bottom: 1.25rem; }
 
     .step-progress-text {
       display: flex;
       justify-content: space-between;
-      align-items: center;
       font-size: 0.75rem;
       font-weight: 600;
       color: var(--gray-500);
@@ -130,14 +121,8 @@
     .step-progress-fill {
       height: 100%;
       background: var(--tan);
-      border-radius: 2px;
       width: 0%;
       transition: width 0.35s ease;
-    }
-
-    .steps-container {
-      flex: 1;
-      position: relative;
     }
 
     .form-step {
@@ -148,19 +133,11 @@
       animation: stepIn 0.3s ease;
     }
 
-    .form-step.active {
-      display: block;
-    }
+    .form-step.active { display: block; }
 
     @keyframes stepIn {
-      from {
-        opacity: 0;
-        transform: translateX(12px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
+      from { opacity: 0; transform: translateX(12px); }
+      to { opacity: 1; transform: translateX(0); }
     }
 
     .form-step legend {
@@ -178,19 +155,7 @@
       gap: 0.5rem;
     }
 
-    .option-grid.cols-2 {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    @media (max-width: 420px) {
-      .option-grid.cols-2 {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .option {
-      position: relative;
-    }
+    .option { position: relative; }
 
     .option input {
       position: absolute;
@@ -223,39 +188,95 @@
       color: var(--white);
     }
 
-    .text-input {
+    .pack-options {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .pack-card label {
+      text-align: left;
+      padding: 1rem;
+    }
+
+    .pack-title {
+      display: block;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 0.5rem;
+    }
+
+    .pack-card input:checked + label .pack-title {
+      color: var(--white);
+    }
+
+    .pack-features {
+      margin: 0 0 0.75rem;
+      padding-left: 1.1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      line-height: 1.45;
+    }
+
+    .pack-card input:checked + label .pack-features,
+    .pack-card input:checked + label .pack-price {
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .pack-price {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .pack-note {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      margin: 0 0 1rem;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .text-input,
+    .select-input {
       width: 100%;
       padding: 0.85rem 0.9rem;
       border: 2px solid var(--gray-200);
       border-radius: 8px;
       font-family: inherit;
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 500;
       transition: border-color 0.15s;
+      background: var(--white);
+    }
+
+    .text-input.zip-input {
       text-align: center;
       letter-spacing: 0.08em;
+      font-size: 1.1rem;
     }
 
-    .text-input.text-left {
-      text-align: left;
-      letter-spacing: normal;
-    }
+    .text-input.text-left,
+    .select-input { text-align: left; letter-spacing: normal; }
 
-    .text-input:focus {
+    .text-input:focus,
+    .select-input:focus {
       outline: none;
       border-color: var(--tan);
     }
 
-    .text-input.invalid {
-      border-color: #dc2626;
-    }
+    .text-input.invalid,
+    .select-input.invalid { border-color: #dc2626; }
 
     .field-hint {
       font-size: 0.75rem;
       color: var(--gray-500);
       margin-top: 0.5rem;
       text-align: center;
+      font-weight: 500;
     }
+
+    .field-hint.text-left { text-align: left; }
 
     .field-error {
       font-size: 0.75rem;
@@ -266,9 +287,9 @@
       font-weight: 600;
     }
 
-    .field-error.visible {
-      display: block;
-    }
+    .field-error.visible { display: block; }
+
+    .field-error.text-left { text-align: left; }
 
     .name-row {
       display: grid;
@@ -277,9 +298,32 @@
     }
 
     @media (max-width: 420px) {
-      .name-row {
-        grid-template-columns: 1fr;
-      }
+      .name-row { grid-template-columns: 1fr; }
+    }
+
+    .address-grid {
+      display: grid;
+      gap: 0.65rem;
+      margin-top: 0.75rem;
+    }
+
+    .address-grid .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 88px;
+      gap: 0.65rem;
+    }
+
+    .tcpa {
+      font-size: 0.7rem;
+      color: var(--gray-500);
+      margin: 1rem 0 0;
+      line-height: 1.45;
+      font-weight: 500;
+    }
+
+    .schedule-row {
+      display: grid;
+      gap: 0.75rem;
     }
 
     .step-actions {
@@ -308,9 +352,7 @@
       color: var(--navy-dark);
     }
 
-    .action-btn.primary:hover:not(:disabled) {
-      background: #b88958;
-    }
+    .action-btn.primary:hover:not(:disabled) { background: #b88958; }
 
     .action-btn.secondary {
       background: transparent;
@@ -322,22 +364,31 @@
       padding: 0.5rem;
     }
 
-    .action-btn.secondary:hover {
-      color: var(--navy);
-    }
+    .action-btn.secondary:hover { color: var(--navy); }
 
-    .action-btn:active:not(:disabled) {
-      transform: scale(0.99);
-    }
+    .action-btn:active:not(:disabled) { transform: scale(0.99); }
 
     .action-btn:disabled {
       opacity: 0.65;
       cursor: not-allowed;
     }
 
-    .form-nav {
-      margin-top: auto;
-      padding-top: 1rem;
+    .form-nav { margin-top: auto; padding-top: 1rem; }
+
+    #paymentElement {
+      margin: 1rem 0;
+      padding: 0.75rem;
+      border: 2px solid var(--gray-200);
+      border-radius: 8px;
+      min-height: 120px;
+    }
+
+    .deposit-copy {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--navy);
+      text-align: center;
+      margin: 0 0 0.5rem;
     }
 
     .success-panel {
@@ -346,25 +397,23 @@
       text-align: center;
     }
 
-    .success-panel.visible {
-      display: block;
-    }
+    .success-panel.visible { display: block; }
 
     .success-icon {
-      width: 64px;
-      height: 64px;
+      width: 72px;
+      height: 72px;
       margin: 0 auto 1.25rem;
       border-radius: 50%;
       background: var(--tan-light);
       color: var(--navy);
-      font-size: 2rem;
-      line-height: 64px;
+      font-size: 2.25rem;
+      line-height: 72px;
       font-weight: 800;
     }
 
     .success-panel h2 {
       margin: 0 0 0.75rem;
-      font-size: 1.25rem;
+      font-size: 1.5rem;
       color: var(--navy);
       font-weight: 800;
     }
@@ -388,9 +437,7 @@
       font-weight: 600;
     }
 
-    .form-error.visible {
-      display: block;
-    }
+    .form-error.visible { display: block; }
 
     footer {
       margin-top: 2rem;
@@ -409,22 +456,22 @@
 
     <main class="hero-card">
       <div class="hero-header" id="heroHeader">
-        <h1>Check Availability &amp; Pricing</h1>
+        <h1>Instant Price &amp; Availability Check</h1>
       </div>
 
       <div id="successPanel" class="success-panel" role="status" aria-live="polite">
         <div class="success-icon" aria-hidden="true">✓</div>
-        <h2>You're one step closer to an easy move!</h2>
-        <p>We'll reach out with pricing and availability as soon as possible.</p>
+        <h2>You're all set!</h2>
+        <p>Your boxes are reserved. We'll see you at drop-off.</p>
       </div>
 
       <form id="quoteForm" class="form-body" novalidate>
         <div id="formError" class="form-error" role="alert"></div>
 
-        <div class="step-progress" id="stepProgress" aria-hidden="true">
+        <div class="step-progress" aria-hidden="true">
           <div class="step-progress-text">
-            <span id="stepLabel">Step 1 of 6</span>
-            <span id="stepPercent">17%</span>
+            <span id="stepLabel">Step 1 of 8</span>
+            <span id="stepPercent">13%</span>
           </div>
           <div class="step-progress-bar">
             <div class="step-progress-fill" id="stepProgressFill"></div>
@@ -432,47 +479,9 @@
         </div>
 
         <div class="steps-container">
-          <fieldset class="form-step active" data-step="0" data-auto-advance>
-            <legend>When are you moving?</legend>
-            <div class="option-grid">
-              <div class="option">
-                <input type="radio" name="moveTimeline" id="timeline-this-week" value="This week" required>
-                <label for="timeline-this-week">This week</label>
-              </div>
-              <div class="option">
-                <input type="radio" name="moveTimeline" id="timeline-2-weeks" value="Within 2 weeks" required>
-                <label for="timeline-2-weeks">Within 2 weeks</label>
-              </div>
-              <div class="option">
-                <input type="radio" name="moveTimeline" id="timeline-30-days" value="Within 30 days" required>
-                <label for="timeline-30-days">Within 30 days</label>
-              </div>
-              <div class="option">
-                <input type="radio" name="moveTimeline" id="timeline-1-3-months" value="1-3 months" required>
-                <label for="timeline-1-3-months">1-3 months</label>
-              </div>
-              <div class="option">
-                <input type="radio" name="moveTimeline" id="timeline-3-plus" value="3+ months" required>
-                <label for="timeline-3-plus">3+ months</label>
-              </div>
-            </div>
-          </fieldset>
-
-          <fieldset class="form-step" data-step="1" data-manual-advance>
+          <fieldset class="form-step active" data-step="0" data-manual-advance>
             <legend>What zip code are you moving from?</legend>
-            <input
-              class="text-input"
-              type="text"
-              id="zipFrom"
-              name="zipFrom"
-              inputmode="numeric"
-              pattern="[0-9]{5}"
-              maxlength="5"
-              placeholder="12345"
-              autocomplete="postal-code"
-              required
-              aria-describedby="zipFromHint zipFromError"
-            >
+            <input class="text-input zip-input" type="text" id="zipFrom" name="zipFrom" inputmode="numeric" maxlength="5" placeholder="12345" autocomplete="postal-code" required aria-describedby="zipFromHint zipFromError">
             <p id="zipFromHint" class="field-hint">5-digit US zip code</p>
             <p id="zipFromError" class="field-error">Enter a valid 5-digit zip code.</p>
             <div class="step-actions">
@@ -480,21 +489,9 @@
             </div>
           </fieldset>
 
-          <fieldset class="form-step" data-step="2" data-manual-advance>
-            <legend>Where are you moving to?</legend>
-            <input
-              class="text-input"
-              type="text"
-              id="zipTo"
-              name="zipTo"
-              inputmode="numeric"
-              pattern="[0-9]{5}"
-              maxlength="5"
-              placeholder="12345"
-              autocomplete="postal-code"
-              required
-              aria-describedby="zipToHint zipToError"
-            >
+          <fieldset class="form-step" data-step="1" data-manual-advance>
+            <legend>What zip code are you moving to?</legend>
+            <input class="text-input zip-input" type="text" id="zipTo" name="zipTo" inputmode="numeric" maxlength="5" placeholder="12345" autocomplete="postal-code" required aria-describedby="zipToHint zipToError">
             <p id="zipToHint" class="field-hint">5-digit US zip code</p>
             <p id="zipToError" class="field-error">Enter a valid 5-digit zip code.</p>
             <div class="step-actions">
@@ -502,78 +499,105 @@
             </div>
           </fieldset>
 
-          <fieldset class="form-step" data-step="3" data-auto-advance>
-            <legend>What type of move is this?</legend>
-            <div class="option-grid cols-2">
+          <fieldset class="form-step" data-step="2" data-auto-advance>
+            <legend>How many bedrooms will you be moving?</legend>
+            <div class="option-grid">
               <div class="option">
-                <input type="radio" name="moveType" id="type-apartment" value="Apartment" required>
-                <label for="type-apartment">Apartment</label>
+                <input type="radio" name="bedrooms" id="bed-studio" value="studio" required>
+                <label for="bed-studio">Studio/Dorm</label>
               </div>
               <div class="option">
-                <input type="radio" name="moveType" id="type-house" value="House" required>
-                <label for="type-house">House</label>
+                <input type="radio" name="bedrooms" id="bed-1" value="1" required>
+                <label for="bed-1">1</label>
               </div>
               <div class="option">
-                <input type="radio" name="moveType" id="type-office" value="Office" required>
-                <label for="type-office">Office</label>
+                <input type="radio" name="bedrooms" id="bed-2" value="2" required>
+                <label for="bed-2">2</label>
               </div>
               <div class="option">
-                <input type="radio" name="moveType" id="type-other" value="Other" required>
-                <label for="type-other">Other</label>
+                <input type="radio" name="bedrooms" id="bed-3" value="3" required>
+                <label for="bed-3">3</label>
+              </div>
+              <div class="option">
+                <input type="radio" name="bedrooms" id="bed-4" value="4" required>
+                <label for="bed-4">4</label>
+              </div>
+              <div class="option">
+                <input type="radio" name="bedrooms" id="bed-5plus" value="5plus" required>
+                <label for="bed-5plus">5+</label>
               </div>
             </div>
           </fieldset>
 
-          <fieldset class="form-step" data-step="4" data-auto-advance>
-            <legend>How many rooms will you be moving?</legend>
-            <div class="option-grid">
-              <div class="option">
-                <input type="radio" name="rooms" id="rooms-studio" value="Studio" required>
-                <label for="rooms-studio">Studio</label>
-              </div>
-              <div class="option">
-                <input type="radio" name="rooms" id="rooms-1" value="1 Bedroom" required>
-                <label for="rooms-1">1 Bedroom</label>
-              </div>
-              <div class="option">
-                <input type="radio" name="rooms" id="rooms-2" value="2 Bedrooms" required>
-                <label for="rooms-2">2 Bedrooms</label>
-              </div>
-              <div class="option">
-                <input type="radio" name="rooms" id="rooms-3" value="3 Bedrooms" required>
-                <label for="rooms-3">3 Bedrooms</label>
-              </div>
-              <div class="option">
-                <input type="radio" name="rooms" id="rooms-4-plus" value="4+ Bedrooms" required>
-                <label for="rooms-4-plus">4+ Bedrooms</label>
-              </div>
+          <fieldset class="form-step" data-step="3" data-manual-advance>
+            <legend>Choose your moving box pack</legend>
+            <p class="pack-note">All boxes are 31&quot; x 21&quot; x 23.5&quot; · Free delivery &amp; pickup</p>
+            <div id="packOptions" class="pack-options"></div>
+            <div class="step-actions">
+              <button type="button" class="action-btn primary" data-continue>Next</button>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-step" data-step="4" data-manual-advance>
+            <legend>Where can we reach you?</legend>
+            <div class="name-row">
+              <input class="text-input text-left" type="text" id="firstName" name="firstName" placeholder="First name" autocomplete="given-name" required>
+              <input class="text-input text-left" type="text" id="lastName" name="lastName" placeholder="Last name" autocomplete="family-name" required>
+            </div>
+            <div style="margin-top: 0.75rem">
+              <input class="text-input text-left" type="tel" id="phone" name="phone" placeholder="5555555555" autocomplete="tel" inputmode="numeric" maxlength="10" required aria-describedby="phoneHint phoneError">
+              <p id="phoneHint" class="field-hint text-left">10-digit US phone (cannot start with 1)</p>
+              <p id="phoneError" class="field-error text-left">Enter a valid 10-digit phone number.</p>
+            </div>
+            <p class="tcpa">By selecting Next, you agree to be contacted by phone or text about your moving box rental, including by automated means. Message/data rates may apply. Consent is not a condition of purchase.</p>
+            <div class="step-actions">
+              <button type="button" class="action-btn primary" data-submit-contact>Next</button>
             </div>
           </fieldset>
 
           <fieldset class="form-step" data-step="5" data-manual-advance>
-            <legend>Where should we send pricing and availability for your move?</legend>
-            <div class="name-row">
-              <input class="text-input text-left" type="text" id="firstName" name="firstName" placeholder="First Name" autocomplete="given-name" required>
-              <input class="text-input text-left" type="text" id="lastName" name="lastName" placeholder="Last Name" autocomplete="family-name" required>
+            <legend>Drop-off location</legend>
+            <input class="text-input text-left" type="text" id="addressSearch" placeholder="Street address" autocomplete="off" aria-label="Search street address">
+            <div id="addressFields" class="address-grid" hidden>
+              <input class="text-input text-left" type="text" id="dropoffStreet" name="dropoffStreet" placeholder="Street address" required>
+              <input class="text-input text-left" type="text" id="dropoffCity" name="dropoffCity" placeholder="City" required>
+              <div class="row-2">
+                <input class="text-input text-left" type="text" id="dropoffState" name="dropoffState" placeholder="State" maxlength="2" required>
+                <input class="text-input text-left" type="text" id="dropoffZip" name="dropoffZip" placeholder="Zip" inputmode="numeric" maxlength="5" required>
+              </div>
             </div>
-            <div style="margin-top: 0.75rem">
-              <input
-                class="text-input text-left"
-                type="tel"
-                id="phone"
-                name="phone"
-                placeholder="5555555555"
-                autocomplete="tel"
-                inputmode="numeric"
-                maxlength="10"
-                required
-                aria-describedby="phoneHint phoneError"
-              >
-              <p id="phoneHint" class="field-hint">10-digit US phone number (cannot start with 1)</p>
-              <p id="phoneError" class="field-error">Enter a valid 10-digit phone number. Cannot start with 1.</p>
-            </div>
+            <p id="addressError" class="field-error text-left">Please select a complete address.</p>
             <div class="step-actions">
-              <button type="submit" class="action-btn primary" id="submitBtn">Get Pricing &amp; Availability</button>
+              <button type="button" class="action-btn primary" data-continue>Next</button>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-step" data-step="6" data-manual-advance>
+            <legend>Drop-off date &amp; time</legend>
+            <div class="schedule-row">
+              <div>
+                <label class="field-hint text-left" for="dropoffDate">Date</label>
+                <input class="text-input text-left" type="date" id="dropoffDate" name="dropoffDate" required>
+              </div>
+              <div>
+                <label class="field-hint text-left" for="dropoffTime">Time (9 AM – 8 PM)</label>
+                <select class="select-input" id="dropoffTime" name="dropoffTime" required>
+                  <option value="">Select a time</option>
+                </select>
+              </div>
+            </div>
+            <p id="scheduleError" class="field-error text-left">Please choose a date and time.</p>
+            <div class="step-actions">
+              <button type="button" class="action-btn primary" data-continue>Next</button>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-step" data-step="7" data-manual-advance>
+            <legend>Reserve your boxes</legend>
+            <p class="deposit-copy" id="depositLabel">$100 deposit to reserve boxes</p>
+            <div id="paymentElement"></div>
+            <div class="step-actions">
+              <button type="button" class="action-btn primary" id="payBtn" data-pay>Pay deposit &amp; reserve</button>
             </div>
           </fieldset>
         </div>
@@ -587,272 +611,6 @@
     <footer>&copy; <span id="year"></span> Moving Box Rental Company</footer>
   </div>
 
-  <script>
-    const WEBHOOK_URL = "https://hook.us2.make.com/cxcu3wmnwa5ldn83kbyr7jdepfaq9asn";
-    const AUTO_ADVANCE_DELAY = 350;
-    const TOTAL_STEPS = 6;
-
-    const form = document.getElementById("quoteForm");
-    const steps = Array.from(document.querySelectorAll(".form-step"));
-    const successPanel = document.getElementById("successPanel");
-    const formError = document.getElementById("formError");
-    const submitBtn = document.getElementById("submitBtn");
-    const heroHeader = document.getElementById("heroHeader");
-    const backBtn = document.getElementById("backBtn");
-    const stepProgress = document.getElementById("stepProgress");
-    const stepLabel = document.getElementById("stepLabel");
-    const stepPercent = document.getElementById("stepPercent");
-    const stepProgressFill = document.getElementById("stepProgressFill");
-
-    let currentStep = 0;
-    let advancing = false;
-
-    document.getElementById("year").textContent = new Date().getFullYear();
-
-    function digitsOnly(value) {
-      return value.replace(/\D/g, "");
-    }
-
-    function isValidZip(value) {
-      return /^\d{5}$/.test(value);
-    }
-
-    function normalizePhoneDigits(value) {
-      let digits = digitsOnly(value);
-      if (digits.length === 11 && digits.charAt(0) === "1") {
-        digits = digits.slice(1);
-      }
-      return digits;
-    }
-
-    function isValidPhone(value) {
-      const digits = normalizePhoneDigits(value);
-      if (digits.length !== 10) return false;
-      if (digits.charAt(0) === "1" || digits.charAt(0) === "0") return false;
-      if (digits.charAt(3) === "0" || digits.charAt(3) === "1") return false;
-      return true;
-    }
-
-    function getRadioValue(name) {
-      const selected = form.querySelector('input[name="' + name + '"]:checked');
-      return selected ? selected.value : "";
-    }
-
-    function updateProgress() {
-      const stepNum = currentStep + 1;
-      const pct = Math.round((stepNum / TOTAL_STEPS) * 100);
-      stepLabel.textContent = "Step " + stepNum + " of " + TOTAL_STEPS;
-      stepPercent.textContent = pct + "%";
-      stepProgressFill.style.width = pct + "%";
-      backBtn.hidden = currentStep === 0;
-    }
-
-    function focusStepInput(stepEl) {
-      const focusable = stepEl.querySelector(
-        "input:not([type=radio]):not([type=hidden]), button[data-continue], button#submitBtn"
-      );
-      if (focusable) {
-        setTimeout(() => focusable.focus(), 320);
-      }
-    }
-
-    function showStep(index) {
-      if (index < 0 || index >= steps.length) return;
-
-      steps.forEach((step, i) => {
-        step.classList.toggle("active", i === index);
-      });
-
-      currentStep = index;
-      updateProgress();
-      focusStepInput(steps[index]);
-      formError.classList.remove("visible");
-    }
-
-    function goNext() {
-      if (advancing || currentStep >= steps.length - 1) return;
-      advancing = true;
-      showStep(currentStep + 1);
-      setTimeout(() => {
-        advancing = false;
-      }, AUTO_ADVANCE_DELAY);
-    }
-
-    function goBack() {
-      if (currentStep <= 0) return;
-      showStep(currentStep - 1);
-    }
-
-    function validateZipStep(inputId, errorId) {
-      const input = document.getElementById(inputId);
-      const errorEl = document.getElementById(errorId);
-      const valid = isValidZip(input.value);
-
-      input.classList.toggle("invalid", !valid);
-      errorEl.classList.toggle("visible", !valid);
-
-      return valid;
-    }
-
-    function validateContactStep() {
-      const phone = document.getElementById("phone");
-      const phoneErr = document.getElementById("phoneError");
-      let valid = true;
-
-      phoneErr.classList.remove("visible");
-      phone.classList.remove("invalid");
-
-      if (!form.checkValidity()) {
-        valid = false;
-      }
-
-      if (!isValidPhone(phone.value)) {
-        phone.classList.add("invalid");
-        phoneErr.classList.add("visible");
-        valid = false;
-      }
-
-      return valid;
-    }
-
-    function bindZipInput(input, errorEl) {
-      input.addEventListener("input", () => {
-        const cleaned = digitsOnly(input.value).slice(0, 5);
-        if (input.value !== cleaned) {
-          input.value = cleaned;
-        }
-        input.classList.toggle("invalid", cleaned.length > 0 && cleaned.length !== 5);
-        errorEl.classList.remove("visible");
-      });
-    }
-
-    function bindPhoneInput(input, errorEl) {
-      input.addEventListener("input", () => {
-        let digits = normalizePhoneDigits(input.value).slice(0, 10);
-        if (digits.length > 0 && digits.charAt(0) === "1") {
-          digits = digits.slice(1);
-        }
-        if (input.value !== digits) {
-          input.value = digits;
-        }
-        const partial = digits.length > 0;
-        const valid = isValidPhone(digits);
-        input.classList.toggle("invalid", partial && !valid && digits.length === 10);
-        errorEl.classList.remove("visible");
-      });
-
-      input.addEventListener("blur", () => {
-        const valid = isValidPhone(input.value);
-        input.classList.toggle("invalid", !valid && input.value.length > 0);
-        errorEl.classList.toggle("visible", !valid && input.value.length > 0);
-      });
-    }
-
-    bindZipInput(document.getElementById("zipFrom"), document.getElementById("zipFromError"));
-    bindZipInput(document.getElementById("zipTo"), document.getElementById("zipToError"));
-    bindPhoneInput(document.getElementById("phone"), document.getElementById("phoneError"));
-
-    document.querySelectorAll("[data-auto-advance]").forEach((stepEl) => {
-      stepEl.querySelectorAll('input[type="radio"]').forEach((radio) => {
-        radio.addEventListener("change", () => {
-          if (parseInt(stepEl.dataset.step, 10) !== currentStep) return;
-          setTimeout(goNext, AUTO_ADVANCE_DELAY);
-        });
-      });
-    });
-
-    document.querySelectorAll("[data-continue]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const stepEl = btn.closest(".form-step");
-        const stepIndex = parseInt(stepEl.dataset.step, 10);
-
-        if (stepIndex !== currentStep) return;
-
-        if (stepIndex === 1 && !validateZipStep("zipFrom", "zipFromError")) return;
-        if (stepIndex === 2 && !validateZipStep("zipTo", "zipToError")) return;
-
-        goNext();
-      });
-    });
-
-    document.getElementById("zipFrom").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        if (currentStep === 1) {
-          document.querySelector('[data-step="1"] [data-continue]').click();
-        }
-      }
-    });
-
-    document.getElementById("zipTo").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        if (currentStep === 2) {
-          document.querySelector('[data-step="2"] [data-continue]').click();
-        }
-      }
-    });
-
-    backBtn.addEventListener("click", goBack);
-
-    function collectPayload() {
-      return {
-        moveTimeline: getRadioValue("moveTimeline"),
-        zipFrom: document.getElementById("zipFrom").value,
-        zipTo: document.getElementById("zipTo").value,
-        moveType: getRadioValue("moveType"),
-        rooms: getRadioValue("rooms"),
-        firstName: document.getElementById("firstName").value.trim(),
-        lastName: document.getElementById("lastName").value.trim(),
-        phone: normalizePhoneDigits(document.getElementById("phone").value),
-        submittedAt: new Date().toISOString(),
-        source: "landing-page"
-      };
-    }
-
-    function showSuccess() {
-      form.style.display = "none";
-      heroHeader.style.display = "none";
-      successPanel.classList.add("visible");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-
-      if (currentStep !== TOTAL_STEPS - 1) return;
-
-      if (!validateContactStep()) {
-        form.reportValidity();
-        return;
-      }
-
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Submitting…";
-
-      const payload = collectPayload();
-
-      try {
-        const response = await fetch(WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-          throw new Error("Webhook returned " + response.status);
-        }
-
-        showSuccess();
-      } catch (err) {
-        formError.textContent = "Something went wrong submitting your request. Please try again or call us directly.";
-        formError.classList.add("visible");
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Get Pricing & Availability";
-      }
-    });
-
-    updateProgress();
-  </script>
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>

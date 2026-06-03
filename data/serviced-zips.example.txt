@@ -1,0 +1,4 @@
+# Example serviced zip codes (one per line or comma-separated in SERVICED_ZIPS)
+# 78701
+# 78702
+# 78703
